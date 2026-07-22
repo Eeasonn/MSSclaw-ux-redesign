@@ -16,12 +16,7 @@ import {
 } from '@/domain/sceneAxis';
 import { resolvePrimaryCaseIdForScenario } from '@/domain/portalCase';
 import { openPortalCard } from '@/domain/portalNavigation';
-import {
-  AI_TOOL_NAV_CATEGORIES,
-  isHomeAiTool,
-  type AiToolNavCategoryId,
-} from '@/domain/aiToolCategories';
-import { getPlazaToolPicks } from '@/domain/plazaToolPicks';
+import { isHomeAiTool } from '@/domain/aiToolCategories';
 import {
   getPlazaToolGuides,
   PLAZA_GUIDE_TYPE_LABEL,
@@ -42,7 +37,6 @@ import {
   type RankMode,
 } from '@/domain/contentEngagement';
 import { ToolLogo } from '@/components/brand/ToolLogo';
-import { EngagementActions } from '@/components/content/EngagementActions';
 import { ScenarioDetailModal } from '@/components/content/ScenarioDetailModal';
 import { useMarketplaceStore } from '@/stores/marketplaceStore';
 import { usePortalContentStore } from '@/stores/portalContentStore';
@@ -147,57 +141,6 @@ function MiniSelect<T extends string>({
         ))}
       </select>
       <i className="fa-solid fa-chevron-down pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[8px] text-zinc-400" />
-    </div>
-  );
-}
-
-function ToolIconRow({
-  tools,
-  onOpen,
-  onHowTo,
-  emptyText = '暂无推荐',
-}: {
-  tools: PrototypeToolSeed[];
-  onOpen: (id: string) => void;
-  onHowTo: (tool: PrototypeToolSeed) => void;
-  emptyText?: string;
-}) {
-  return (
-    <div className="flex min-h-[72px] items-center gap-3 overflow-x-auto px-1 scroll-hidden">
-      {tools.map((t) => {
-        const hasGuide = getPlazaToolGuides(t.id).length > 0;
-        return (
-          <div key={t.id} className="flex shrink-0 items-center gap-2 px-1 py-1">
-            <button
-              type="button"
-              title={t.desc}
-              onClick={() => onOpen(t.id)}
-              className="flex w-[64px] flex-col items-center justify-center gap-1.5 rounded-lg py-1 transition hover:bg-zinc-100/70"
-            >
-              <ToolLogo name={t.name} logoUrl={t.logoUrl} icon={t.icon} size={28} />
-              <span className="w-full truncate text-center text-[11px] font-semibold text-zinc-800">
-                {t.name}
-              </span>
-            </button>
-            {hasGuide ? (
-              <button
-                type="button"
-                title="试用前有疑问？点此查看 How to 指引"
-                onClick={() => onHowTo(t)}
-                className="group flex flex-col items-start justify-center gap-0.5 rounded-md px-0.5 py-1 text-left transition"
-              >
-                <span className="font-serif text-[10px] italic leading-none tracking-wide text-zinc-300 transition group-hover:text-zinc-500">
-                  How to
-                </span>
-                <span className="text-[9px] leading-none text-zinc-300/80 transition group-hover:text-zinc-400">
-                  有疑问点这里
-                </span>
-              </button>
-            ) : null}
-          </div>
-        );
-      })}
-      {!tools.length ? <p className="px-2 py-3 text-[11px] text-zinc-400">{emptyText}</p> : null}
     </div>
   );
 }
@@ -332,7 +275,6 @@ export function HomeScenePortal({ onInvokeAgent, onInvokeSkill, onStartExpertTea
   const [rankMode, setRankMode] = useState<RankMode>('trending');
   const [capability, setCapability] = useState<ScenarioCapabilityId | 'all'>('all');
   const [sceneAxis, setSceneAxis] = useState<SceneAxisId | 'all'>('all');
-  const [toolCat, setToolCat] = useState<AiToolNavCategoryId>('chat');
   const [howToTool, setHowToTool] = useState<PrototypeToolSeed | null>(null);
   const [detailBundle, setDetailBundle] = useState<ScenarioBundle | null>(null);
   const focusPortalType = useNavigationIntentStore((s) => s.focusPortalType);
@@ -351,17 +293,12 @@ export function HomeScenePortal({ onInvokeAgent, onInvokeSkill, onStartExpertTea
   );
 
   const homeAiTools = useMemo(() => tools.filter(isHomeAiTool), [tools]);
-  const toolsById = useMemo(() => new Map(homeAiTools.map((t) => [t.id, t])), [homeAiTools]);
 
-  const pickedTools = useMemo(() => {
-    const picks = getPlazaToolPicks(toolCat);
-    const resolve = (ids: string[]) =>
-      ids.map((id) => toolsById.get(id)).filter((t): t is PrototypeToolSeed => Boolean(t));
-    return {
-      external: resolve(picks.external),
-      internal: resolve(picks.internal),
-    };
-  }, [toolCat, toolsById]);
+  /** 即开即用工具：并入场景流，按调用量取前 3（点开即用，无需派任务） */
+  const quickTools = useMemo(
+    () => [...homeAiTools].sort((a, b) => b.invokes - a.invokes).slice(0, 3),
+    [homeAiTools],
+  );
 
   const discoverScenarios = useMemo(
     () =>
@@ -387,33 +324,49 @@ export function HomeScenePortal({ onInvokeAgent, onInvokeSkill, onStartExpertTea
     return new Map(bundles.map((b) => [b.id, b]));
   }, [agents, skills, tools, portalContent, affiliation, user]);
 
-  /** 精选场景卡：按任务类型轴原位过滤 */
-  const featuredScenarios = useMemo(
-    () => discoverScenarios.filter((s) => scenarioInSceneAxis(s.id, sceneAxis)),
-    [discoverScenarios, sceneAxis],
-  );
+  /**
+   * 场景流：精选与热门同源混排 —— 编辑精选（编辑顺序）在前，
+   * 热门按热度紧随其后；切换排序方式时整体按所选热度维度重排
+   */
+  const flowScenarios = useMemo(() => {
+    const filtered = discoverScenarios.filter(
+      (s) => scenarioInSceneAxis(s.id, sceneAxis) && scenarioBelongsToCapability(s.id, capability),
+    );
+    const enriched = filtered.map((s) => {
+      const caseId = resolvePrimaryCaseIdForScenario(s.id);
+      const caseItem = caseId
+        ? portalContent.find((p) => p.id === caseId)
+        : undefined;
+      return {
+        ...s,
+        publishedAt: SCENARIO_PUBLISHED_AT[s.id as DiscoverScenarioId],
+        primaryCaseId: caseId,
+        primaryCaseTitle: caseItem?.title,
+      };
+    });
+    if (rankMode !== 'trending') {
+      return sortByRankMode(enriched, rankMode, engagementOf);
+    }
+    const featuredFirst = enriched.slice(0, 3);
+    const hotRest = sortByRankMode(enriched, 'trending', engagementOf).filter(
+      (s) => !featuredFirst.some((f) => f.id === s.id),
+    );
+    return [...featuredFirst, ...hotRest];
+  }, [discoverScenarios, sceneAxis, capability, rankMode, engagementOf, engagementById, portalContent]);
 
-  const rankedScenarios = useMemo(() => {
-    const filtered = discoverScenarios.filter((s) =>
-      scenarioBelongsToCapability(s.id, capability),
-    );
-    return sortByRankMode(
-      filtered.map((s) => {
-        const caseId = resolvePrimaryCaseIdForScenario(s.id);
-        const caseItem = caseId
-          ? portalContent.find((p) => p.id === caseId)
-          : undefined;
-        return {
-          ...s,
-          publishedAt: SCENARIO_PUBLISHED_AT[s.id as DiscoverScenarioId],
-          primaryCaseId: caseId,
-          primaryCaseTitle: caseItem?.title,
-        };
-      }),
-      rankMode,
-      engagementOf,
-    );
-  }, [discoverScenarios, capability, rankMode, engagementOf, engagementById, portalContent]);
+  /** 案例墙：已发布案例，金案例优先、新的在前，取前 6 条 */
+  const caseWallItems = useMemo(
+    () =>
+      portalContent
+        .filter((i) => i.type === 'case' && i.published !== false)
+        .sort(
+          (a, b) =>
+            Number(Boolean(b.isGold)) - Number(Boolean(a.isGold)) ||
+            (b.publishedAt ?? '').localeCompare(a.publishedAt ?? ''),
+        )
+        .slice(0, 6),
+    [portalContent],
+  );
 
   const hotTop3Ids = useMemo(() => {
     return [...discoverScenarios]
@@ -516,6 +469,13 @@ export function HomeScenePortal({ onInvokeAgent, onInvokeSkill, onStartExpertTea
     setDetailBundle(bundle);
   };
 
+  /** 案例墙：跳到案例样板间并打开对应案例叙事 */
+  const openCase = (caseId: string) => {
+    bumpUse(caseId);
+    focusCase(caseId);
+    openResourceWithReturn('ai-map');
+  };
+
   const linkBtnClass =
     'text-[11px] font-medium text-zinc-400 transition hover:text-zinc-700';
 
@@ -524,40 +484,66 @@ export function HomeScenePortal({ onInvokeAgent, onInvokeSkill, onStartExpertTea
       {/* 0. 本周精选横幅 */}
       <PlazaPromoBanner items={promoItems} onOpen={handleCard} onMore={goOpsMore} />
 
-      {/* 1. 精选场景：任务类型 chips 原位过滤 */}
+      {/* 1. 场景流：精选 + 热门同源混排的一张卡片网格；即开即用工具以徽章卡并入 */}
       <section>
         <SectionToolbar
-          title="精选场景"
+          title="场景直达"
           filters={
-            <FilterTrack>
-              <FilterChip active={sceneAxis === 'all'} onClick={() => setSceneAxis('all')}>
-                全部
-              </FilterChip>
-              {SCENE_AXIS_CATEGORIES.map((c) => (
-                <FilterChip
-                  key={c.id}
-                  active={sceneAxis === c.id}
-                  onClick={() => setSceneAxis(c.id)}
-                >
-                  <i className={cn('fa-solid text-[9px]', c.icon)} />
-                  {c.label}
+            <div className="flex min-w-0 flex-col items-start gap-1">
+              <FilterTrack>
+                <FilterChip active={sceneAxis === 'all'} onClick={() => setSceneAxis('all')}>
+                  全部
                 </FilterChip>
-              ))}
-            </FilterTrack>
+                {SCENE_AXIS_CATEGORIES.map((c) => (
+                  <FilterChip
+                    key={c.id}
+                    active={sceneAxis === c.id}
+                    onClick={() => setSceneAxis(c.id)}
+                  >
+                    <i className={cn('fa-solid text-[9px]', c.icon)} />
+                    {c.label}
+                  </FilterChip>
+                ))}
+              </FilterTrack>
+              <FilterTrack>
+                <FilterChip active={capability === 'all'} onClick={() => setCapability('all')}>
+                  全部
+                </FilterChip>
+                {SCENARIO_CAPABILITY_CATEGORIES.map((c) => (
+                  <FilterChip
+                    key={c.id}
+                    active={capability === c.id}
+                    onClick={() => setCapability(c.id)}
+                    title={c.blurb}
+                  >
+                    <i className={cn('fa-solid text-[9px]', c.icon)} />
+                    {c.label}
+                  </FilterChip>
+                ))}
+              </FilterTrack>
+            </div>
           }
           trailing={
-            <button
-              type="button"
-              onClick={() => openResourceWithReturn('ai-map')}
-              className={linkBtnClass}
-            >
-              更多
-            </button>
+            <>
+              <MiniSelect
+                ariaLabel="排序方式"
+                value={rankMode}
+                onChange={setRankMode}
+                options={[...RANK_MODE_OPTIONS]}
+              />
+              <button
+                type="button"
+                onClick={() => openResourceWithReturn('ai-map')}
+                className={linkBtnClass}
+              >
+                更多
+              </button>
+            </>
           }
         />
 
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-          {featuredScenarios.map((s) => {
+          {flowScenarios.slice(0, 9).map((s) => {
             const bundle = bundleById.get(s.id);
             const expertCount = bundle?.agents.length ?? 0;
             const capabilityCount = bundle?.tools.length ?? 0;
@@ -572,7 +558,7 @@ export function HomeScenePortal({ onInvokeAgent, onInvokeSkill, onStartExpertTea
                       <span
                         className="rounded px-1 py-px text-[9px] font-bold uppercase tracking-wide text-white"
                         style={{ backgroundColor: '#C8102E' }}
-                        title="新品"
+                        title="编辑精选 · 新上架"
                         aria-label="New"
                       >
                         New
@@ -622,148 +608,129 @@ export function HomeScenePortal({ onInvokeAgent, onInvokeSkill, onStartExpertTea
               </div>
             );
           })}
-          {!featuredScenarios.length ? (
-            <p className="col-span-full py-6 text-center text-[12px] text-zinc-400">
-              该类型下暂无场景
-            </p>
-          ) : null}
-        </div>
-      </section>
-
-      {/* 2. 大家都在用：热度排行场景喂 */}
-      <section>
-        <SectionToolbar
-          title="大家都在用"
-          filters={
-            <FilterTrack>
-              <FilterChip active={capability === 'all'} onClick={() => setCapability('all')}>
-                全部
-              </FilterChip>
-              {SCENARIO_CAPABILITY_CATEGORIES.map((c) => (
-                <FilterChip
-                  key={c.id}
-                  active={capability === c.id}
-                  onClick={() => setCapability(c.id)}
-                  title={c.blurb}
+          {quickTools.map((t) => {
+            const hasGuide = getPlazaToolGuides(t.id).length > 0;
+            return (
+              <div
+                key={t.id}
+                className="relative flex flex-col gap-2 rounded-xl border border-zinc-200/80 bg-white px-3 py-2.5 transition hover:border-zinc-300 hover:bg-zinc-50/60"
+              >
+                <span
+                  className="pointer-events-none absolute right-2 top-2 z-10 rounded px-1 py-px text-[9px] font-bold text-white"
+                  style={{ backgroundColor: '#0A7C66' }}
+                  title="点开即用，无需派任务"
                 >
-                  <i className={cn('fa-solid text-[9px]', c.icon)} />
-                  {c.label}
-                </FilterChip>
-              ))}
-            </FilterTrack>
-          }
-          trailing={
-            <>
-              <MiniSelect
-                ariaLabel="排序方式"
-                value={rankMode}
-                onChange={setRankMode}
-                options={[...RANK_MODE_OPTIONS]}
-              />
-              <button
-                type="button"
-                onClick={() => openResourceWithReturn('ai-map')}
-                className={linkBtnClass}
-              >
-                更多
-              </button>
-            </>
-          }
-        />
-
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-          {rankedScenarios.slice(0, 6).map((s) => (
-            <div
-              key={s.id}
-              className="relative flex flex-col gap-2 rounded-xl border border-zinc-200/80 bg-white px-3 py-2.5 transition hover:border-zinc-300 hover:bg-zinc-50/60"
-            >
-              {(hotTop3Ids.includes(s.id) || isNewScenario(s.id)) ? (
-                <span className="pointer-events-none absolute right-2 top-2 z-10 flex items-center gap-1">
-                  {isNewScenario(s.id) ? (
-                    <span
-                      className="rounded px-1 py-px text-[9px] font-bold uppercase tracking-wide text-white"
-                      style={{ backgroundColor: '#C8102E' }}
-                      title="新品"
-                      aria-label="New"
-                    >
-                      New
+                  即开即用
+                </span>
+                <button
+                  type="button"
+                  onClick={() => openTool(t.id)}
+                  className="flex min-w-0 items-start gap-2.5 pr-5 text-left"
+                  title={t.desc}
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100">
+                    <ToolLogo name={t.name} logoUrl={t.logoUrl} icon={t.icon} size={20} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-[12px] font-semibold text-zinc-900">
+                      {t.name}
                     </span>
-                  ) : null}
-                  {hotTop3Ids.includes(s.id) ? (
-                    <span
-                      className="flex h-5 w-5 items-center justify-center text-[#E85D04]"
-                      title="最火 Top3"
-                      aria-label="最火"
-                    >
-                      <i className="fa-solid fa-fire text-[11px]" />
+                    <span className="mt-0.5 line-clamp-2 block text-[10px] leading-snug text-zinc-400">
+                      {t.desc}
                     </span>
-                  ) : null}
-                </span>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => openScenario(s.id)}
-                className="min-w-0 pr-5 text-left"
-              >
-                <span className="block truncate text-[12px] font-semibold text-zinc-900">
-                  {s.label}
-                </span>
-                <span className="mt-0.5 line-clamp-1 block text-[10px] leading-snug text-zinc-400">
-                  {s.primaryCaseTitle ? `代表案例：${s.primaryCaseTitle}` : s.desc}
-                </span>
-              </button>
-              <EngagementActions
-                contentId={s.id}
-                compact
-                onAfterAction={(action) => {
-                  if (action === 'download') showToast('已记录下载');
-                  if (action === 'dislike') showToast('已反馈，运营将关注优化');
-                }}
-              />
-            </div>
-          ))}
-          {!rankedScenarios.length ? (
+                  </span>
+                </button>
+                <div className="mt-auto flex items-center justify-between gap-2">
+                  <span className="text-[10px] text-zinc-400">
+                    {t.sourceType === 'external' ? '外部工具' : '内部工具'}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-2">
+                    {hasGuide ? (
+                      <button
+                        type="button"
+                        onClick={() => openHowTo(t)}
+                        className="font-serif text-[10px] italic text-zinc-300 transition hover:text-zinc-500"
+                        title="试用前有疑问？查看 How to 指引"
+                      >
+                        How to
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => openTool(t.id)}
+                      className="apple-btn-primary shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-semibold text-white transition"
+                    >
+                      打开
+                    </button>
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+          {!flowScenarios.length ? (
             <p className="col-span-full py-6 text-center text-[12px] text-zinc-400">
-              该能力下暂无场景
+              该筛选下暂无场景
             </p>
           ) : null}
         </div>
       </section>
 
-      {/* 3. 马上能用：能力筛选 + 外部 | 内部 并排精选（折叠线以下） */}
+      {/* 2. 案例墙：看到别人用场景拿到了什么结果 */}
       <section>
         <SectionToolbar
-          title="马上能用"
-          filters={
-            <FilterTrack>
-              {AI_TOOL_NAV_CATEGORIES.map((c) => (
-                <FilterChip key={c.id} active={toolCat === c.id} onClick={() => setToolCat(c.id)}>
-                  <i className={cn('fa-solid text-[9px]', c.icon)} />
-                  {c.label}
-                </FilterChip>
-              ))}
-            </FilterTrack>
-          }
+          title="案例墙"
           trailing={
-            <button type="button" onClick={() => setAppView('tools')} className={linkBtnClass}>
+            <button
+              type="button"
+              onClick={() => openResourceWithReturn('ai-map')}
+              className={linkBtnClass}
+            >
               更多
             </button>
           }
         />
-        <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
-          <div className="rounded-2xl border border-zinc-200/70 bg-white/80 px-2.5 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-            <p className="mb-1 px-1 text-[11px] font-semibold text-zinc-500">外部</p>
-            <ToolIconRow tools={pickedTools.external} onOpen={openTool} onHowTo={openHowTo} />
-          </div>
-          <div className="rounded-2xl border border-zinc-200/70 bg-white/80 px-2.5 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-            <p className="mb-1 px-1 text-[11px] font-semibold text-zinc-500">内部</p>
-            <ToolIconRow
-              tools={pickedTools.internal}
-              onOpen={openTool}
-              onHowTo={openHowTo}
-              emptyText="暂无内部推荐"
-            />
-          </div>
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+          {caseWallItems.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => openCase(item.id)}
+              className="relative flex flex-col gap-2 rounded-xl border border-zinc-200/80 bg-white px-3 py-2.5 text-left transition hover:border-zinc-300 hover:bg-zinc-50/60"
+            >
+              {item.isGold ? (
+                <span
+                  className="pointer-events-none absolute right-2 top-2 z-10 rounded px-1 py-px text-[9px] font-bold text-white"
+                  style={{ backgroundColor: '#B8860B' }}
+                  title="金牌案例"
+                >
+                  金案例
+                </span>
+              ) : null}
+              <span className="flex min-w-0 items-start gap-2.5 pr-5">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600">
+                  <i className={cn('fa-solid text-[14px]', item.icon)} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-[12px] font-semibold text-zinc-900">
+                    {item.title}
+                  </span>
+                  <span className="mt-0.5 line-clamp-2 block text-[10px] leading-snug text-zinc-400">
+                    {item.desc}
+                  </span>
+                </span>
+              </span>
+              {item.impactMetric ? (
+                <span className="mt-auto block rounded-lg bg-emerald-50/80 px-2 py-1 text-[10px] leading-snug text-emerald-700">
+                  结果：{item.impactMetric}
+                </span>
+              ) : null}
+            </button>
+          ))}
+          {!caseWallItems.length ? (
+            <p className="col-span-full py-6 text-center text-[12px] text-zinc-400">
+              暂无已发布案例
+            </p>
+          ) : null}
         </div>
       </section>
 
