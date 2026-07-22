@@ -43,6 +43,7 @@ export const PERSPECTIVE_SECTIONED_VIEWS: Record<
   ops: [
     'home',
     'task',
+    'new-task',
     'messages',
     'ai-map',
     'agents',
@@ -61,6 +62,7 @@ export const PERSPECTIVE_SECTIONED_VIEWS: Record<
   it: [
     'home',
     'task',
+    'new-task',
     'messages',
     'ai-map',
     'skills',

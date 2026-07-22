@@ -5,7 +5,7 @@ import { GlobalToastHost } from '@/components/common/GlobalToastHost';
 import { AssetApprovalModal } from '@/components/center/AssetApprovalModal';
 import { OfflineBanner } from '@/components/common/OfflineBanner';
 import { MssZhishuMark } from '@/components/brand/MssZhishuMark';
-import { HomeToTaskTransit } from '@/components/home/HomeToTaskTransit';
+
 import { useConversationStore } from '@/stores/conversationStore';
 import { useHomeStore } from '@/stores/homeStore';
 import { useMarketplaceStore } from '@/stores/marketplaceStore';
@@ -14,7 +14,7 @@ import { useInboxStore } from '@/stores/inboxStore';
 import { getAgentById } from '@/domain/plan';
 import { buildSkillDemoPrompt } from '@/domain/skillRuntime';
 import { buildAgentDemoPrompt } from '@/domain/agents/runtime';
-import { enterTaskChatFocusMode } from '@/domain/taskFocusMode';
+
 import { PROTOTYPE_AGENTS } from '@/domain/prototype/agents';
 import type { PrototypeAgentSeed, PrototypeKbDocument, PrototypeSkillSeed } from '@/domain/prototype/types';
 import type { ScenarioDemoPlan } from '@/domain/scenarioPipeline';
@@ -86,33 +86,13 @@ export function App() {
     [workspaceId, workspaceList],
   );
   const hydratedRef = useRef(false);
-  const transitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [workspaceHydrating, setWorkspaceHydrating] = useState(false);
   const [sessionsReady, setSessionsReady] = useState(false);
-  const [transit, setTransit] = useState<{ open: boolean; summary: string }>({
-    open: false,
-    summary: '',
-  });
 
-  const goToTaskWithTransit = useCallback((summary: string, chatId?: string) => {
-    if (transitTimerRef.current) clearTimeout(transitTimerRef.current);
-    const preview = summary.trim().length > 48 ? `${summary.trim().slice(0, 48)}…` : summary.trim();
-    setTransit({ open: true, summary: preview });
-    enterTaskChatFocusMode();
-    transitTimerRef.current = setTimeout(() => {
-      if (chatId) navigateToTaskChat(chatId);
-      else setAppView('task');
-      setTransit({ open: false, summary: '' });
-      transitTimerRef.current = null;
-    }, 720);
+  const goToTaskChat = useCallback((chatId?: string) => {
+    if (chatId) navigateToTaskChat(chatId);
+    else setAppView('task');
   }, [setAppView]);
-
-  useEffect(
-    () => () => {
-      if (transitTimerRef.current) clearTimeout(transitTimerRef.current);
-    },
-    [],
-  );
 
   useAppRouting();
   useTaskRouteSync(appView);
@@ -230,8 +210,8 @@ export function App() {
     });
     useHomeStore.getState().setDraftText('');
     useHomeStore.getState().setHomeMode('assistant');
-    goToTaskWithTransit(trimmed, chatId);
-  }, [createAgentTaskSession, goToTaskWithTransit, sessionsReady]);
+    goToTaskChat(chatId);
+  }, [createAgentTaskSession, goToTaskChat, sessionsReady]);
 
   const handleInvokeAgent = useCallback((agent: PrototypeAgentSeed, prompt?: string) => {
     if (!canExecuteChat()) {
@@ -249,8 +229,8 @@ export function App() {
     useConversationStore.setState({
       pendingTaskSubmit: { chatId, message, autoSend: true },
     });
-    goToTaskWithTransit(message, chatId);
-  }, [findOrCreateAgentSession, switchChat, goToTaskWithTransit, sessionsReady]);
+    goToTaskChat(chatId);
+  }, [findOrCreateAgentSession, switchChat, goToTaskChat, sessionsReady]);
 
   const handleInvokeSkill = useCallback((skill: PrototypeSkillSeed) => {
     if (!canExecuteChat()) {
@@ -281,8 +261,8 @@ export function App() {
       switchTo: true,
     });
     useHomeStore.getState().setHomeMode('assistant');
-    goToTaskWithTransit(skill.name, chatId);
-  }, [createAgentTaskSession, goToTaskWithTransit, sessionsReady]);
+    goToTaskChat(chatId);
+  }, [createAgentTaskSession, goToTaskChat, sessionsReady]);
 
   const handleAskKbDocument = useCallback((doc: PrototypeKbDocument) => {
     const agent = getAgentById('agent-knowledge');
@@ -322,9 +302,9 @@ export function App() {
         autoApprove: true,
       });
       if (!chatId) return;
-      goToTaskWithTransit(`专家团 · ${plan.scenarioLabel}`, chatId);
+      goToTaskChat(chatId);
     },
-    [sessionsReady, startExpertTeamRelay, goToTaskWithTransit],
+    [sessionsReady, startExpertTeamRelay, goToTaskChat],
   );
 
   const viewHandlers = useMemo(
@@ -478,8 +458,7 @@ export function App() {
         </Suspense>
       )}
 
-      <TaskGlobalModals onWorkspaceSwitch={reloadAllStores} onSubmitTask={handleSubmitTask} />
-      <HomeToTaskTransit open={transit.open} summary={transit.summary} />
+      <TaskGlobalModals onWorkspaceSwitch={reloadAllStores} />
       <GlobalToastHost />
       <AssetApprovalModal />
     </div>

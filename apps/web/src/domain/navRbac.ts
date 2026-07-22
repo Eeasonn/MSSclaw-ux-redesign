@@ -22,6 +22,7 @@ function hasAtLeast(level: PermissionLevel, min: PermissionLevel): boolean {
 const VIEW_RBAC: Partial<Record<AppView, { module: ResourceModule; min: PermissionLevel }>> = {
   home: { module: 'chat', min: 'read' },
   task: { module: 'chat', min: 'read' },
+  'new-task': { module: 'chat', min: 'execute' },
   messages: { module: 'chat', min: 'read' },
   'ai-map': { module: 'chat', min: 'read' },
   cases: { module: 'chat', min: 'read' },

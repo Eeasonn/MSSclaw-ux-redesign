@@ -2,6 +2,7 @@ export const APP_VIEWS = [
   'home',
   'ai-map',
   'task',
+  'new-task',
   'messages',
   'agents',
   'agent-studio',

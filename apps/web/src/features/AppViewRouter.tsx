@@ -20,6 +20,7 @@ import {
   LazySettingsPage,
   LazySkillCenterPage,
   LazyTaskCenterPage,
+  LazyNewTaskPage,
   LazyMyMessagesPage,
   LazyToolCenterPage,
   LazyWorkflowStudioPage,
@@ -44,6 +45,7 @@ interface AppViewRouterProps {
 const VIEW_LABELS: Partial<Record<AppView, string>> = {
   home: '逛广场',
   task: '做任务',
+  'new-task': '开启任务',
   messages: '我的消息',
   'ai-map': '学案例',
   agents: '找专家',
@@ -90,6 +92,12 @@ export function AppViewRouter({ appView, handlers }: AppViewRouterProps) {
       return (
         <LazyView label={label}>
           <LazyTaskCenterPage onWorkspaceSwitch={handlers.onWorkspaceSwitch} />
+        </LazyView>
+      );
+    case 'new-task':
+      return (
+        <LazyView label={label}>
+          <LazyNewTaskPage onSubmitTask={handlers.onSubmitTask} />
         </LazyView>
       );
     case 'messages':

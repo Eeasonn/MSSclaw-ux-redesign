@@ -90,7 +90,7 @@ function SidebarSessionItem({
           active && 'active',
           (deletable || renamable) && 'pr-12',
         )}
-        title={`${chat.title} · ${status.label}`}
+        title={`${isWarRoom(chat) ? `协作室：${chat.title}` : chat.title} · ${status.label}`}
       >
         <i
           className={cn(
@@ -121,6 +121,8 @@ function SidebarSessionItem({
               maxLength={64}
               aria-label="重命名"
             />
+          ) : isWarRoom(chat) ? (
+            `协作室：${chat.title}`
           ) : (
             chat.title
           )}

@@ -9,6 +9,7 @@ import {
 import { isAppViewSlot, NAV_PRESENTATION_META } from '@/domain/navPresentation';
 import { ROLE_LABELS } from '@/domain/rbac';
 import { openResourceWithReturn } from '@/domain/openResourceNav';
+import { canExecuteChat, READONLY_EXECUTE_HINT } from '@/domain/permissions';
 import {
   SHELL_PERSPECTIVE_LABELS,
   SHELL_PERSPECTIVE_SHORT_LABELS,
@@ -21,10 +22,10 @@ import { SidebarTaskPanel } from '@/components/shell/SidebarTaskPanel';
 import { ROUTE_PREFETCH } from '@/features/lazyPages';
 import { cn } from '@/lib/utils';
 import { useAppViewStore } from '@/stores/appViewStore';
+import { useConversationStore } from '@/stores/conversationStore';
 import { useNavPresentationStore } from '@/stores/navPresentationStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useShellPerspectiveStore } from '@/stores/shellPerspectiveStore';
-import { useTaskStore } from '@/stores/taskStore';
 
 export function AppShellSidebar() {
   const {
@@ -39,10 +40,10 @@ export function AppShellSidebar() {
   const isViewEnabled = useNavPresentationStore((s) => s.isViewEnabled);
   const user = useSessionStore((s) => s.user);
   const logout = useSessionStore((s) => s.logout);
+  const platformRole = useSessionStore((s) => s.user?.platformRole);
   const perspective = useShellPerspectiveStore((s) => s.perspective);
   const setPerspective = useShellPerspectiveStore((s) => s.setPerspective);
   const hydrate = useShellPerspectiveStore((s) => s.hydrate);
-  const openAiTaskModal = useTaskStore((s) => s.openAiTaskModal);
 
   useEffect(() => {
     hydrate(user?.platformRole);
@@ -133,6 +134,14 @@ export function AppShellSidebar() {
   const roleLabel = user ? ROLE_LABELS[user.platformRole] : '';
   const isBusiness = perspective === 'business';
 
+  const openNewTask = () => {
+    if (!canExecuteChat(platformRole)) {
+      useConversationStore.setState({ pushToast: READONLY_EXECUTE_HINT });
+      return;
+    }
+    setAppView('new-task');
+  };
+
   return (
     <aside
       className={cn(
@@ -183,14 +192,15 @@ export function AppShellSidebar() {
       <nav className="flex-1 space-y-0.5 overflow-y-auto scroll-hidden px-3 py-3">
         <button
           type="button"
-          onClick={openAiTaskModal}
+          onClick={openNewTask}
           className={cn(
-            'ai-task-trigger mb-2 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-[14px] font-semibold text-white shadow-lg transition hover:shadow-xl active:scale-[0.98]',
+            'ai-task-trigger mb-2 flex w-full items-center justify-center gap-2 rounded-xl py-2 text-[13px] font-semibold text-white shadow-md transition hover:shadow-lg active:scale-[0.98]',
+            appView === 'new-task' && 'ring-2 ring-white/40',
             sidebarCollapsed && 'px-0',
           )}
           title="开启一个任务"
         >
-          <i className={cn('fa-solid', sidebarCollapsed ? 'fa-sparkles text-[16px]' : 'fa-wand-magic-sparkles text-[15px]')} />
+          <i className={cn('fa-solid', sidebarCollapsed ? 'fa-sparkles text-[15px]' : 'fa-wand-magic-sparkles text-[13px]')} />
           <span className={cn('nav-label', sidebarCollapsed && 'hidden')}>开启一个任务</span>
         </button>
 
@@ -245,10 +255,12 @@ export function AppShellSidebar() {
                 <span className="nav-label">技能</span>
               </button>
             )}
+
+            <SidebarTaskPanel />
           </div>
         ) : (
           <>
-            {(['workspace', 'platform', 'ops'] as NavSection[]).map((section) => {
+            {(['workspace', 'platform'] as NavSection[]).map((section) => {
               if (section === 'workspace') {
                 const homeItem = itemsBySection.workspace.find((i) => i.id === 'home');
                 const hasWorkspaceBody = Boolean(homeItem) || isViewEnabled('ai-map');
@@ -300,11 +312,27 @@ export function AppShellSidebar() {
               }
 
               // 案例已并入工作平台，避免运营台重复
-              const items =
-                section === 'platform'
-                  ? itemsBySection[section].filter((i) => i.id !== 'ai-map')
-                  : itemsBySection[section];
+              const items = itemsBySection[section].filter((i) => i.id !== 'ai-map');
 
+              return items.length > 0 ? (
+                <NavSectionGroup
+                  key={section}
+                  section={section}
+                  label={NAV_SECTION_LABELS[section]}
+                  collapsed={navSectionsCollapsed[section]}
+                  onToggle={() => toggleNavSection(section)}
+                  items={items}
+                  activeView={appView}
+                  onSelect={setAppView}
+                  sidebarCollapsed={sidebarCollapsed}
+                />
+              ) : null;
+            })}
+
+            <SidebarTaskPanel />
+
+            {(['ops'] as NavSection[]).map((section) => {
+              const items = itemsBySection[section];
               return items.length > 0 ? (
                 <NavSectionGroup
                   key={section}
@@ -330,8 +358,6 @@ export function AppShellSidebar() {
           </>
         )}
       </nav>
-
-      <SidebarTaskPanel />
 
       <div className="border-t border-black/[0.06] p-2.5">
         <div className="flex items-center gap-1.5">

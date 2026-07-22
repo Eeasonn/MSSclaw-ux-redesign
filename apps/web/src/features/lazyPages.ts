@@ -5,6 +5,10 @@ export const LazyTaskCenterPage = lazy(() =>
   import('@/features/task/TaskCenterPage').then((m) => ({ default: m.TaskCenterPage })),
 );
 
+export const LazyNewTaskPage = lazy(() =>
+  import('@/features/task/NewTaskPage').then((m) => ({ default: m.NewTaskPage })),
+);
+
 export const LazyMyMessagesPage = lazy(() =>
   import('@/features/messages/MyMessagesPage').then((m) => ({ default: m.MyMessagesPage })),
 );
@@ -84,6 +88,7 @@ export const LazyExportModal = lazy(() =>
 /** Hover prefetch for secondary routes (dev + prod dynamic import cache) */
 export const ROUTE_PREFETCH: Partial<Record<AppView, () => void>> = {
   task: () => void import('@/features/task/TaskCenterPage'),
+  'new-task': () => void import('@/features/task/NewTaskPage'),
   messages: () => void import('@/features/messages/MyMessagesPage'),
   agents: () => void import('@/features/agent/AgentCenterPage'),
   'agent-studio': () => void import('@/features/_legacy/agent/AgentStudioPage'),

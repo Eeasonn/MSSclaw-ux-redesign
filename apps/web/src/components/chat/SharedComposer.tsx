@@ -241,7 +241,7 @@ export function SharedComposer({
                 className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-60"
               >
                 <i className="fa-solid fa-cube mr-1 text-[10px] text-zinc-500" />
-                / Skill
+                / 技能
               </button>
               <button
                 type="button"
@@ -250,7 +250,7 @@ export function SharedComposer({
                 className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-60"
               >
                 <i className="fa-solid fa-robot mr-1 text-[10px] text-zinc-500" />
-                @ Agent
+                @ 专家
               </button>
               <select
                 value={config.model}
@@ -344,7 +344,7 @@ export function SharedComposer({
             </div>
           ) : (
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-100 px-4 py-1.5 text-[10px] text-zinc-400">
-              <span>Enter 发送 · @ Agent · / Skill</span>
+              <span>Enter 发送 · @ 专家 · / 技能</span>
               <span className={cn(status.configured && 'font-medium text-emerald-600/90')}>{status.text}</span>
             </div>
           )}

@@ -23,8 +23,6 @@ function loadSessionGroups(): Record<string, boolean> {
 
 interface TaskState {
   artifactPanelCollapsed: boolean;
-  /** 从 AI任务 进入时的专注提示条 */
-  focusBannerVisible: boolean;
   sessionGroupsCollapsed: Record<string, boolean>;
   sessionSearch: string;
   /** 业务壳任务页当前空间：我的任务 / 协作室（localStorage 持久化） */
@@ -32,29 +30,22 @@ interface TaskState {
   createDialogOpen: boolean;
   resourceExplorerOpen: boolean;
   toggleArtifactPanel: () => void;
-  dismissFocusBanner: () => void;
   toggleSessionGroup: (group: string) => void;
   setSessionSearch: (q: string) => void;
   setTaskSpace: (space: TaskSpace) => void;
   /** 仅打开「新建群聊」弹窗；Agent 任务请用 openAiAssistantForNewTask */
   openCreateDialog: () => void;
   closeCreateDialog: () => void;
-  /** 侧栏 AI 按钮：打开「开启一个任务」输入弹窗 */
-  aiTaskModalOpen: boolean;
-  openAiTaskModal: () => void;
-  closeAiTaskModal: () => void;
   toggleResourceExplorer: () => void;
   closeResourceExplorer: () => void;
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
   artifactPanelCollapsed: localStorage.getItem(LS_ARTIFACT) === '1',
-  focusBannerVisible: false,
   sessionGroupsCollapsed: loadSessionGroups(),
   sessionSearch: '',
   taskSpace: loadTaskSpace(),
   createDialogOpen: false,
-  aiTaskModalOpen: false,
   resourceExplorerOpen: false,
 
   toggleArtifactPanel: () => {
@@ -62,8 +53,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     localStorage.setItem(LS_ARTIFACT, next ? '1' : '0');
     set({ artifactPanelCollapsed: next });
   },
-
-  dismissFocusBanner: () => set({ focusBannerVisible: false }),
 
   toggleSessionGroup: (group) => {
     const next = { ...get().sessionGroupsCollapsed, [group]: !get().sessionGroupsCollapsed[group] };
@@ -84,14 +73,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     set({ createDialogOpen: true });
   },
   closeCreateDialog: () => set({ createDialogOpen: false }),
-  openAiTaskModal: () => {
-    if (!canExecuteChat()) {
-      useConversationStore.setState({ pushToast: READONLY_EXECUTE_HINT });
-      return;
-    }
-    set({ aiTaskModalOpen: true });
-  },
-  closeAiTaskModal: () => set({ aiTaskModalOpen: false }),
   toggleResourceExplorer: () => set((s) => ({ resourceExplorerOpen: !s.resourceExplorerOpen })),
   closeResourceExplorer: () => set({ resourceExplorerOpen: false }),
 }));

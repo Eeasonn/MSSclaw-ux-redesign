@@ -81,9 +81,11 @@ export function SidebarTaskPanel() {
                   'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[12px] text-zinc-600 transition hover:bg-black/[0.04] hover:text-zinc-900',
                   active && 'bg-black/[0.05] font-medium text-zinc-900',
                 )}
-                title={chat.title}
+                title={warroom ? `协作室：${chat.title}` : chat.title}
               >
-                <span className="min-w-0 flex-1 truncate">{chat.title}</span>
+                <span className="min-w-0 flex-1 truncate">
+                  {warroom ? `协作室：${chat.title}` : chat.title}
+                </span>
                 <span className="flex shrink-0 items-center gap-1 text-[10px] text-zinc-400">
                   {warroom && <i className="fa-solid fa-users text-[10px] text-indigo-500" />}
                   {formatRelativeTime(chat.pinnedAt ?? chat.createdAt)}
