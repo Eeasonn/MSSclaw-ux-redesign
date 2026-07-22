@@ -39,6 +39,10 @@ interface TaskState {
   /** 仅打开「新建群聊」弹窗；Agent 任务请用 openAiAssistantForNewTask */
   openCreateDialog: () => void;
   closeCreateDialog: () => void;
+  /** 侧栏 AI 按钮：打开「开启一个任务」输入弹窗 */
+  aiTaskModalOpen: boolean;
+  openAiTaskModal: () => void;
+  closeAiTaskModal: () => void;
   toggleResourceExplorer: () => void;
   closeResourceExplorer: () => void;
 }
@@ -50,6 +54,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   sessionSearch: '',
   taskSpace: loadTaskSpace(),
   createDialogOpen: false,
+  aiTaskModalOpen: false,
   resourceExplorerOpen: false,
 
   toggleArtifactPanel: () => {
@@ -79,6 +84,14 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     set({ createDialogOpen: true });
   },
   closeCreateDialog: () => set({ createDialogOpen: false }),
+  openAiTaskModal: () => {
+    if (!canExecuteChat()) {
+      useConversationStore.setState({ pushToast: READONLY_EXECUTE_HINT });
+      return;
+    }
+    set({ aiTaskModalOpen: true });
+  },
+  closeAiTaskModal: () => set({ aiTaskModalOpen: false }),
   toggleResourceExplorer: () => set((s) => ({ resourceExplorerOpen: !s.resourceExplorerOpen })),
   closeResourceExplorer: () => set({ resourceExplorerOpen: false }),
 }));

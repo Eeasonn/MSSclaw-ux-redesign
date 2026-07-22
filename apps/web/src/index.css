@@ -653,6 +653,124 @@
 
 
 
+/* ── 侧栏「开启一个任务」AI 主按钮 ── */
+
+
+
+.ai-task-trigger {
+
+  position: relative;
+
+  overflow: hidden;
+
+  background:
+
+    radial-gradient(ellipse 140% 120% at 20% 10%, rgba(6, 182, 212, 0.28), transparent 55%),
+
+    radial-gradient(ellipse 120% 100% at 90% 90%, rgba(99, 102, 241, 0.22), transparent 50%),
+
+    linear-gradient(135deg, #0f172a 0%, #1e293b 52%, #0f172a 100%);
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  box-shadow:
+
+    0 1px 2px rgba(0, 0, 0, 0.18),
+
+    0 8px 24px rgba(15, 23, 42, 0.28),
+
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+}
+
+
+
+.ai-task-trigger::before {
+
+  content: '';
+
+  position: absolute;
+
+  inset: 0;
+
+  background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.08) 50%, transparent 65%);
+
+  background-size: 220% 100%;
+
+  animation: ai-trigger-shimmer 5s ease-in-out infinite;
+
+  pointer-events: none;
+
+}
+
+
+
+.ai-task-trigger:hover {
+
+  filter: brightness(1.08);
+
+}
+
+
+
+.ai-task-trigger:active {
+
+  transform: scale(0.98);
+
+}
+
+
+
+@keyframes ai-trigger-shimmer {
+
+  0%,
+
+  100% {
+
+    background-position: 200% 0;
+
+  }
+
+  50% {
+
+    background-position: -200% 0;
+
+  }
+
+}
+
+
+
+.app-sidebar.sidebar-collapsed .ai-task-trigger {
+
+  border-radius: 18px;
+
+}
+
+
+
+/* ── 侧栏底部「任务」折叠面板 ── */
+
+
+
+.sidebar-task-panel {
+
+  flex: 0 0 auto;
+
+  max-height: 320px;
+
+}
+
+
+
+.app-sidebar.sidebar-collapsed .sidebar-task-panel {
+
+  display: none;
+
+}
+
+
+
 
 
 

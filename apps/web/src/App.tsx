@@ -478,7 +478,7 @@ export function App() {
         </Suspense>
       )}
 
-      <TaskGlobalModals onWorkspaceSwitch={reloadAllStores} />
+      <TaskGlobalModals onWorkspaceSwitch={reloadAllStores} onSubmitTask={handleSubmitTask} />
       <HomeToTaskTransit open={transit.open} summary={transit.summary} />
       <GlobalToastHost />
       <AssetApprovalModal />

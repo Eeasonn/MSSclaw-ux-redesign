@@ -17,13 +17,14 @@ import {
   isViewInSectionedPerspective,
   type ShellPerspective,
 } from '@/domain/shellPerspective';
-import { SidebarTaskNav } from '@/components/shell/SidebarTaskNav';
+import { SidebarTaskPanel } from '@/components/shell/SidebarTaskPanel';
 import { ROUTE_PREFETCH } from '@/features/lazyPages';
 import { cn } from '@/lib/utils';
 import { useAppViewStore } from '@/stores/appViewStore';
 import { useNavPresentationStore } from '@/stores/navPresentationStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useShellPerspectiveStore } from '@/stores/shellPerspectiveStore';
+import { useTaskStore } from '@/stores/taskStore';
 
 export function AppShellSidebar() {
   const {
@@ -36,12 +37,12 @@ export function AppShellSidebar() {
     openSettings,
   } = useAppViewStore();
   const isViewEnabled = useNavPresentationStore((s) => s.isViewEnabled);
-  const isSlotEnabled = useNavPresentationStore((s) => s.isSlotEnabled);
   const user = useSessionStore((s) => s.user);
   const logout = useSessionStore((s) => s.logout);
   const perspective = useShellPerspectiveStore((s) => s.perspective);
   const setPerspective = useShellPerspectiveStore((s) => s.setPerspective);
   const hydrate = useShellPerspectiveStore((s) => s.hydrate);
+  const openAiTaskModal = useTaskStore((s) => s.openAiTaskModal);
 
   useEffect(() => {
     hydrate(user?.platformRole);
@@ -131,10 +132,6 @@ export function AppShellSidebar() {
   const initial = (user?.name?.trim()?.[0] ?? 'U').toUpperCase();
   const roleLabel = user ? ROLE_LABELS[user.platformRole] : '';
   const isBusiness = perspective === 'business';
-  const showTaskNav = isViewEnabled('task');
-  const showWarroomNav = isSlotEnabled('warroom');
-  const taskNavLabel = user?.platformRole === 'viewer' ? '任务结果' : '做任务';
-  const taskNavShort = user?.platformRole === 'viewer' ? '任务' : '任务';
 
   return (
     <aside
@@ -184,6 +181,19 @@ export function AppShellSidebar() {
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto scroll-hidden px-3 py-3">
+        <button
+          type="button"
+          onClick={openAiTaskModal}
+          className={cn(
+            'ai-task-trigger mb-2 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-[14px] font-semibold text-white shadow-lg transition hover:shadow-xl active:scale-[0.98]',
+            sidebarCollapsed && 'px-0',
+          )}
+          title="开启一个任务"
+        >
+          <i className={cn('fa-solid', sidebarCollapsed ? 'fa-sparkles text-[16px]' : 'fa-wand-magic-sparkles text-[15px]')} />
+          <span className={cn('nav-label', sidebarCollapsed && 'hidden')}>开启一个任务</span>
+        </button>
+
         {isBusiness ? (
           <div className="space-y-0.5">
             <button
@@ -196,29 +206,6 @@ export function AppShellSidebar() {
               <i className="fa-solid fa-house w-5 text-center text-[15px]" />
               <span className="nav-label">逛广场</span>
             </button>
-
-            {showTaskNav && (
-              <SidebarTaskNav
-                kind="agents"
-                label={taskNavLabel}
-                shortLabel={taskNavShort}
-                icon="fa-list-check"
-                compact={sidebarCollapsed}
-                followTaskSpace
-              />
-            )}
-
-            {isViewEnabled('messages') && (
-              <button
-                type="button"
-                onClick={() => setAppView('messages')}
-                className={cn('wb-nav-item', appView === 'messages' && 'active')}
-                title={sidebarCollapsed ? '消息' : '消息 · 推送通知'}
-              >
-                <i className="fa-solid fa-bell w-5 text-center text-[15px]" />
-                <span className="nav-label">消息</span>
-              </button>
-            )}
 
             {isViewEnabled('ai-map') && (
               <button
@@ -264,8 +251,7 @@ export function AppShellSidebar() {
             {(['workspace', 'platform', 'ops'] as NavSection[]).map((section) => {
               if (section === 'workspace') {
                 const homeItem = itemsBySection.workspace.find((i) => i.id === 'home');
-                const hasWorkspaceBody =
-                  Boolean(homeItem) || showTaskNav || showWarroomNav || isViewEnabled('ai-map');
+                const hasWorkspaceBody = Boolean(homeItem) || isViewEnabled('ai-map');
                 if (!hasWorkspaceBody) return null;
                 return (
                   <div
@@ -294,34 +280,6 @@ export function AppShellSidebar() {
                         >
                           <i className="fa-solid fa-house w-5 text-center text-[15px]" />
                           <span className="nav-label">逛广场</span>
-                        </button>
-                      )}
-                      {showTaskNav && (
-                        <SidebarTaskNav
-                          kind="agents"
-                          label={taskNavLabel}
-                          shortLabel={taskNavShort}
-                          icon="fa-list-check"
-                          compact={sidebarCollapsed}
-                        />
-                      )}
-                      {showWarroomNav && (
-                        <SidebarTaskNav
-                          kind="warrooms"
-                          label="协作室"
-                          icon="fa-comments"
-                          compact={sidebarCollapsed}
-                        />
-                      )}
-                      {perspective === 'it' && isViewEnabled('messages') && (
-                        <button
-                          type="button"
-                          onClick={() => setAppView('messages')}
-                          className={cn('wb-nav-item', appView === 'messages' && 'active')}
-                          title={sidebarCollapsed ? '消息' : '消息 · 推送通知'}
-                        >
-                          <i className="fa-solid fa-bell w-5 text-center text-[15px]" />
-                          <span className="nav-label">消息</span>
                         </button>
                       )}
                       {isViewEnabled('ai-map') && (
@@ -372,6 +330,8 @@ export function AppShellSidebar() {
           </>
         )}
       </nav>
+
+      <SidebarTaskPanel />
 
       <div className="border-t border-black/[0.06] p-2.5">
         <div className="flex items-center gap-1.5">
