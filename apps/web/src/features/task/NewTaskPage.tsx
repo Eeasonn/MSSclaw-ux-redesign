@@ -22,16 +22,15 @@ export function NewTaskPage({ onSubmitTask }: NewTaskPageProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scroll-hidden bg-white">
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center px-6 py-12">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 text-white shadow-md">
-            <i className="fa-solid fa-sparkles text-xl" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">开启一个任务</h1>
-          <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-zinc-500">
-            描述你想完成的事，AI 会自动匹配专家与技能。
+      <div className="mx-auto flex w-full max-w-[960px] flex-1 flex-col justify-center px-5 py-4 md:px-6 md:py-5">
+        <header className="mb-6 text-center">
+          <h1 className="home-slogan-art">
+            <span className="home-slogan-gradient">MSS AI提效作战平台，好学又好用！</span>
+          </h1>
+          <p className="mx-auto mt-2 max-w-xl text-[12px] leading-relaxed text-zinc-500">
+            说出来就干活 · 输入需求直接开工，或按场景找专家团一键打样
           </p>
-        </div>
+        </header>
 
         <SharedComposer
           variant="landing"
