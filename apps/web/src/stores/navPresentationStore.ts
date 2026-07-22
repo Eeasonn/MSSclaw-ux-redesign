@@ -18,8 +18,8 @@ import type { PlatformRole } from '@/domain/rbac';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 
-/** v6: 业务/只读角色默认开放「协作室」与「找专家」入口（专家页对业务只读浏览） */
-const LS_KEY = 'mssclaw_nav_presentation_v6';
+/** v7: 业务壳移除「协作室」侧栏入口（并入做任务页内 Tab）；v6: 业务/只读角色默认开放「协作室」与「找专家」入口 */
+const LS_KEY = 'mssclaw_nav_presentation_v7';
 
 interface PersistedNavPresentation {
   preset: NavPresetId;
@@ -27,7 +27,7 @@ interface PersistedNavPresentation {
 }
 
 function defaultState(): PersistedNavPresentation {
-  return { preset: 'customer', roleEnabled: buildRoleNavPreset('customer') };
+  return { preset: 'customer', roleEnabled: removeBusinessWarroom(buildRoleNavPreset('customer')) };
 }
 
 /** v4 → v5：保留既有勾选，仅强制为业务/只读角色补开技能入口 */
@@ -48,10 +48,20 @@ function enableBusinessCollabAndExperts(roleEnabled: RoleNavMatrix): RoleNavMatr
   };
 }
 
+/** v6 → v7：业务/只读角色移除协作室侧栏入口（协作室并入「做任务」页内二级 Tab） */
+function removeBusinessWarroom(roleEnabled: RoleNavMatrix): RoleNavMatrix {
+  return {
+    ...roleEnabled,
+    business_user: { ...roleEnabled.business_user, warroom: false },
+    viewer: { ...roleEnabled.viewer, warroom: false },
+  };
+}
+
 function loadPersisted(): PersistedNavPresentation {
   try {
     const raw =
       localStorage.getItem(LS_KEY) ??
+      localStorage.getItem('mssclaw_nav_presentation_v6') ??
       localStorage.getItem('mssclaw_nav_presentation_v5') ??
       localStorage.getItem('mssclaw_nav_presentation_v4');
     if (raw) {
@@ -73,7 +83,10 @@ function loadPersisted(): PersistedNavPresentation {
         parsed.preset === 'full'
           ? parsed.preset
           : 'customer';
-      const next = { preset, roleEnabled: enableBusinessCollabAndExperts(enableBusinessSkills(base)) };
+      const next = {
+        preset,
+        roleEnabled: removeBusinessWarroom(enableBusinessCollabAndExperts(enableBusinessSkills(base))),
+      };
       persist(next);
       return next;
     }
@@ -81,7 +94,7 @@ function loadPersisted(): PersistedNavPresentation {
     const v3 = localStorage.getItem('mssclaw_nav_presentation_v3');
     if (v3) {
       const parsed = JSON.parse(v3) as { preset?: NavPresetId; enabled?: Record<string, boolean> };
-      const roleEnabled = enableBusinessCollabAndExperts(migrateLegacyEnabled(parsed.enabled ?? {}));
+      const roleEnabled = removeBusinessWarroom(enableBusinessCollabAndExperts(migrateLegacyEnabled(parsed.enabled ?? {})));
       const preset =
         parsed.preset === 'customer' ||
         parsed.preset === 'standard' ||

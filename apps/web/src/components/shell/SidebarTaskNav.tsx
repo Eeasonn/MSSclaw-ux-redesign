@@ -176,6 +176,8 @@ interface SidebarTaskNavProps {
   shortLabel?: string;
   icon: string;
   compact?: boolean;
+  /** 业务壳合并入口：会话列表跟随任务页「我的任务 / 协作室」Tab 过滤 */
+  followTaskSpace?: boolean;
 }
 
 export function SidebarTaskNav({
@@ -184,6 +186,7 @@ export function SidebarTaskNav({
   shortLabel,
   icon,
   compact = false,
+  followTaskSpace = false,
 }: SidebarTaskNavProps) {
   const appView = useAppViewStore((s) => s.appView);
   const setAppView = useAppViewStore((s) => s.setAppView);
@@ -193,36 +196,46 @@ export function SidebarTaskNav({
   const deleteTaskSession = useConversationStore((s) => s.deleteTaskSession);
   const renameTaskSession = useConversationStore((s) => s.renameTaskSession);
   const openCreateDialog = useTaskStore((s) => s.openCreateDialog);
+  const taskSpace = useTaskStore((s) => s.taskSpace);
   const platformRole = useSessionStore((s) => s.user?.platformRole);
   const canCreate = canExecuteChat(platformRole);
   const [showAll, setShowAll] = useState(false);
 
+  /** 合并入口下，列表类型由任务页 Tab 驱动；否则保持传入的 kind */
+  const effectiveKind: SidebarChatKind = followTaskSpace
+    ? taskSpace === 'warrooms'
+      ? 'warrooms'
+      : 'agents'
+    : kind;
+
   const allItems = useMemo(() => {
     const list = Object.values(chats).filter((c) =>
-      kind === 'warrooms'
+      effectiveKind === 'warrooms'
         ? c.sessionGroup === 'pinned' || isWarRoom(c)
         : c.sessionGroup === 'agents' || (!c.sessionGroup && c.type === 'bot'),
     );
     return list.sort(
       (a, b) => (b.pinnedAt ?? b.createdAt ?? 0) - (a.pinnedAt ?? a.createdAt ?? 0),
     );
-  }, [chats, kind]);
+  }, [chats, effectiveKind]);
 
   const { visible, total } = useMemo(() => {
-    if (kind === 'warrooms') {
+    if (effectiveKind === 'warrooms') {
       return { visible: allItems, total: allItems.length };
     }
     if (showAll) {
       return selectSidebarTasks(allItems, currentChatId, allItems.length);
     }
     return selectSidebarTasks(allItems, currentChatId);
-  }, [allItems, currentChatId, kind, showAll]);
+  }, [allItems, currentChatId, effectiveKind, showAll]);
 
   const current = chats[currentChatId];
   const kindActive =
     appView === 'task' &&
     current &&
-    (kind === 'warrooms' ? isWarRoom(current) || current.sessionGroup === 'pinned' : !isWarRoom(current));
+    (effectiveKind === 'warrooms'
+      ? isWarRoom(current) || current.sessionGroup === 'pinned'
+      : !isWarRoom(current));
 
   const tip = shortLabel ?? label;
 
@@ -268,10 +281,10 @@ export function SidebarTaskNav({
           <button
             type="button"
             onClick={() =>
-              kind === 'warrooms' ? openCreateDialog() : openAiAssistantForNewTask()
+              effectiveKind === 'warrooms' ? openCreateDialog() : openAiAssistantForNewTask()
             }
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
-            title={kind === 'warrooms' ? '新建协作室' : '新建任务'}
+            title={effectiveKind === 'warrooms' ? '新建协作室' : '新建任务'}
           >
             <i className="fa-solid fa-plus text-[11px]" />
           </button>
@@ -288,7 +301,7 @@ export function SidebarTaskNav({
               onClick={() => openChat(c.id)}
               onDelete={canCreate ? (id) => deleteTaskSession(id) : undefined}
               onRename={
-                canCreate && kind === 'agents' && c.id.startsWith('task_')
+                canCreate && effectiveKind === 'agents' && c.id.startsWith('task_')
                   ? (id, title) => renameTaskSession(id, title)
                   : undefined
               }
@@ -297,8 +310,7 @@ export function SidebarTaskNav({
         </div>
       )}
 
-      {kind === 'agents' && total > SIDEBAR_ACTIVE_TASK_LIMIT ? (
-        <button
+      {effectiveKind === 'agents' && total > SIDEBAR_ACTIVE_TASK_LIMIT ? (        <button
           type="button"
           onClick={() => {
             if (showAll) {

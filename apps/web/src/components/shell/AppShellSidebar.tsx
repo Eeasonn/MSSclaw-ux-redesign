@@ -204,14 +204,7 @@ export function AppShellSidebar() {
                 shortLabel={taskNavShort}
                 icon="fa-list-check"
                 compact={sidebarCollapsed}
-              />
-            )}
-            {showWarroomNav && (
-              <SidebarTaskNav
-                kind="warrooms"
-                label="协作室"
-                icon="fa-comments"
-                compact={sidebarCollapsed}
+                followTaskSpace
               />
             )}
 

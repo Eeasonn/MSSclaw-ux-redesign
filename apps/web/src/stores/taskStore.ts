@@ -4,6 +4,14 @@ import { useConversationStore } from '@/stores/conversationStore';
 
 const LS_ARTIFACT = 'mssclaw_artifact_collapsed';
 const LS_SESSION_GROUPS = 'mssclaw_session_groups';
+const LS_TASK_SPACE = 'mssclaw_task_space';
+
+/** 任务页二级空间：我的任务 / 协作室（业务壳合并入口后靠它切换） */
+export type TaskSpace = 'tasks' | 'warrooms';
+
+function loadTaskSpace(): TaskSpace {
+  return localStorage.getItem(LS_TASK_SPACE) === 'warrooms' ? 'warrooms' : 'tasks';
+}
 
 function loadSessionGroups(): Record<string, boolean> {
   try {
@@ -19,12 +27,15 @@ interface TaskState {
   focusBannerVisible: boolean;
   sessionGroupsCollapsed: Record<string, boolean>;
   sessionSearch: string;
+  /** 业务壳任务页当前空间：我的任务 / 协作室（localStorage 持久化） */
+  taskSpace: TaskSpace;
   createDialogOpen: boolean;
   resourceExplorerOpen: boolean;
   toggleArtifactPanel: () => void;
   dismissFocusBanner: () => void;
   toggleSessionGroup: (group: string) => void;
   setSessionSearch: (q: string) => void;
+  setTaskSpace: (space: TaskSpace) => void;
   /** 仅打开「新建群聊」弹窗；Agent 任务请用 openAiAssistantForNewTask */
   openCreateDialog: () => void;
   closeCreateDialog: () => void;
@@ -37,6 +48,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   focusBannerVisible: false,
   sessionGroupsCollapsed: loadSessionGroups(),
   sessionSearch: '',
+  taskSpace: loadTaskSpace(),
   createDialogOpen: false,
   resourceExplorerOpen: false,
 
@@ -55,6 +67,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
 
   setSessionSearch: (q) => set({ sessionSearch: q }),
+  setTaskSpace: (space) => {
+    localStorage.setItem(LS_TASK_SPACE, space);
+    set({ taskSpace: space });
+  },
   openCreateDialog: () => {
     if (!canExecuteChat()) {
       useConversationStore.setState({ pushToast: READONLY_EXECUTE_HINT });
