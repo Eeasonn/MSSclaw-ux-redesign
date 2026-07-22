@@ -1,0 +1,69 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build React web (same as npm run build / npm run dev)
+        env:
+          GITHUB_PAGES: 'true'
+        run: npm run build --workspace @mss-claw/web
+
+      - name: Verify React entry
+        run: |
+          test -f apps/web/dist/index.html
+          grep -q 'assets/' apps/web/dist/index.html
+          ! grep -q 'cdn.tailwindcss.com' apps/web/dist/index.html
+
+      # 兼容「Deploy from a branch」：站点源选 gh-pages / (root) 即可，不依赖 Pages Source=GitHub Actions
+      - name: Publish gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: apps/web/dist
+          force_orphan: true
+          enable_jekyll: false
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    # Source 若仍是 branch，此步会失败；不影响上面的 gh-pages 发布
+    continue-on-error: true
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
