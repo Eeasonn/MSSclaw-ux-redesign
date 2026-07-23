@@ -87,7 +87,6 @@ const SCENARIO_OUTCOMES: Record<string, string> = {
 };
 
 const ACCENT = '#c0512f';
-const ACCENT_SOFT = '#fff0e8';
 const FG = '#1c1a17';
 const MUTED = '#6b6966';
 const LINE = '#d4d2cf';
@@ -381,6 +380,7 @@ export function PlazaRedesign({
   const [detailBundle, setDetailBundle] = useState<ScenarioBundle | null>(null);
   const [insightRankMode, setInsightRankMode] = useState<RankMode>('trending');
   const [scenarioRankMode, setScenarioRankMode] = useState<RankMode>('trending');
+  const [caseRankMode, setCaseRankMode] = useState<RankMode>('trending');
   const [bottomRankMode, setBottomRankMode] = useState<RankMode>('trending');
   const [activeToolCategory, setActiveToolCategory] = useState<AiToolNavCategoryId>('chat');
   const [howToTool, setHowToTool] = useState<PrototypeToolSeed | null>(null);
@@ -425,7 +425,9 @@ export function PlazaRedesign({
   }, [tools]);
 
   const publicInsights = useMemo(() => {
-    const list = portalContent.filter((i) => i.published !== false && isPublicInsight(i));
+    const list = portalContent.filter(
+      (i) => i.published !== false && isPublicInsight(i) && i.type !== 'case',
+    );
     return sortByRankMode(list, insightRankMode, engagementOf).slice(0, 3);
   }, [portalContent, insightRankMode, engagementOf, engagementById]);
 
@@ -433,6 +435,7 @@ export function PlazaRedesign({
     const list = portalContent.filter(
       (i) =>
         i.published !== false &&
+        i.type !== 'case' &&
         !isPublicInsight(i) &&
         regionMatch(i, effectiveRegionId) &&
         domainMatch(i, effectiveDeptId) &&
@@ -440,6 +443,18 @@ export function PlazaRedesign({
     );
     return sortByRankMode(list, insightRankMode, engagementOf);
   }, [portalContent, effectiveRegionId, effectiveDeptId, capability, insightRankMode, engagementOf, engagementById]);
+
+  const filteredCases = useMemo(() => {
+    const list = portalContent.filter(
+      (i) =>
+        i.published !== false &&
+        i.type === 'case' &&
+        regionMatch(i, effectiveRegionId) &&
+        domainMatch(i, effectiveDeptId) &&
+        capabilityMatch(i, capability),
+    );
+    return sortByRankMode(list, caseRankMode, engagementOf);
+  }, [portalContent, effectiveRegionId, effectiveDeptId, capability, caseRankMode, engagementOf, engagementById]);
 
   const featuredScenes = useMemo(() => {
     const list = FEATURED_SCENARIOS.filter((s) => {
@@ -510,6 +525,10 @@ export function PlazaRedesign({
 
   function openWorldView() {
     setAppView('world-view');
+  }
+
+  function openCaseLibrary() {
+    setAppView('ai-map');
   }
 
   function handleCard(card: PortalMapCard) {
@@ -765,7 +784,7 @@ export function PlazaRedesign({
 
           <div className="flex flex-1 flex-col gap-2">
             <div className="mb-1 text-[10px]" style={{ color: MUTED }}>
-              按区域 / 领域 TOP 10
+              区域 / 领域精选
             </div>
             {filteredInsights.slice(0, 3).map((item) => (
               <button
@@ -779,8 +798,74 @@ export function PlazaRedesign({
                   {item.title}
                 </span>
                 <div className="flex flex-wrap gap-1">
+                  {item.ownerRegionId ? (
+                    <Tag className="border-[#4a7c59] text-[#4a7c59]">
+                      {getRegionLabel(item.ownerRegionId)}
+                    </Tag>
+                  ) : null}
+                  {(item.ownerDeptIds ?? []).slice(0, 1).map((d) => (
+                    <Tag key={d} className="border-[#5b6b8c] text-[#5b6b8c]">
+                      {getDeptLabel(d)}
+                    </Tag>
+                  ))}
+                </div>
+                <CardEngagementFooter contentId={item.id} publishedAt={item.publishedAt} />
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={openWorldView}
+              className="mt-auto self-start text-[11px] font-medium transition hover:opacity-80"
+              style={{ color: ACCENT }}
+            >
+              查看更多洞察 →
+            </button>
+          </div>
+
+          <div className="h-px" style={{ backgroundColor: LINE }} />
+
+          <div className="flex flex-1 flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold" style={{ color: FG }}>
+                精选案例
+              </span>
+              <div className="flex items-center gap-2">
+                <MiniSelect
+                  ariaLabel="案例排序"
+                  value={caseRankMode}
+                  onChange={setCaseRankMode}
+                  options={[...RANK_MODE_OPTIONS]}
+                />
+                <button
+                  type="button"
+                  onClick={openCaseLibrary}
+                  className="text-[11px] font-medium transition hover:opacity-80"
+                  style={{ color: ACCENT }}
+                >
+                  查看更多 →
+                </button>
+              </div>
+            </div>
+            {filteredCases.slice(0, 3).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => handleCard(contentToCard(item))}
+                className="flex flex-col gap-2 rounded-lg border p-2.5 text-left transition hover:bg-zinc-50/60"
+                style={{ borderColor: LINE }}
+              >
+                <div className="flex items-center gap-2">
+                  <i className={cn('fa-solid text-[11px]', item.icon)} style={{ color: MUTED }} />
+                  <span className="line-clamp-1 text-[12px] font-semibold" style={{ color: FG }}>
+                    {item.title}
+                  </span>
+                </div>
+                <span className="line-clamp-2 text-[10px]" style={{ color: MUTED }}>
+                  {item.desc}
+                </span>
+                <div className="flex flex-wrap gap-1">
                   {item.isGold ? (
-                    <Tag className="border-[#c0512f] bg-[#fff0e8] text-[#c0512f]">金案例</Tag>
+                    <Tag className="border-[#c0512f] bg-white text-[#c0512f]">金案例</Tag>
                   ) : null}
                   {item.ownerRegionId ? (
                     <Tag className="border-[#4a7c59] text-[#4a7c59]">
@@ -796,15 +881,10 @@ export function PlazaRedesign({
                 <CardEngagementFooter contentId={item.id} publishedAt={item.publishedAt} />
               </button>
             ))}
-            {filteredInsights.length > 3 ? (
-              <button
-                type="button"
-                onClick={openWorldView}
-                className="mt-auto self-start text-[11px] font-medium transition hover:opacity-80"
-                style={{ color: ACCENT }}
-              >
-                查看更多 TOP 内容 →
-              </button>
+            {filteredCases.length === 0 ? (
+              <p className="py-2 text-[10px]" style={{ color: MUTED }}>
+                当前视角下暂无精选案例
+              </p>
             ) : null}
           </div>
         </div>
@@ -931,8 +1011,8 @@ export function PlazaRedesign({
                     <div className="flex flex-wrap items-center gap-1">
                       {isHot ? (
                         <span
-                          className="rounded px-1.5 py-px text-[9px] font-semibold"
-                          style={{ backgroundColor: ACCENT_SOFT, color: ACCENT }}
+                          className="rounded border px-1.5 py-px text-[9px] font-semibold"
+                          style={{ backgroundColor: '#fff', borderColor: ACCENT, color: ACCENT }}
                         >
                           热门
                         </span>

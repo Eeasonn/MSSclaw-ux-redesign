@@ -32,14 +32,13 @@ interface WorldViewPageProps {
   onInvokeSkill: (skill: PrototypeSkillSeed) => void;
 }
 
-type WorldContentType = 'all' | 'news' | 'training' | 'case';
+type WorldContentType = 'all' | 'news' | 'training';
 type WorldSortMode = 'trending' | 'most_used' | 'newest';
 
 const TYPE_OPTIONS: { id: WorldContentType; label: string }[] = [
   { id: 'all', label: '全部' },
   { id: 'news', label: '前沿洞察' },
   { id: 'training', label: '培训赋能' },
-  { id: 'case', label: '场景案例' },
 ];
 
 const SORT_OPTIONS: { id: WorldSortMode; label: string }[] = [
@@ -175,6 +174,7 @@ export function WorldViewPage({ onInvokeAgent, onInvokeSkill }: WorldViewPagePro
     return items.filter(
       (i) =>
         i.published !== false &&
+        i.type !== 'case' &&
         (typeFilter === 'all' || i.type === typeFilter) &&
         regionMatch(i, effectiveRegionId) &&
         domainMatch(i, effectiveDeptId),
@@ -293,8 +293,8 @@ export function WorldViewPage({ onInvokeAgent, onInvokeSkill }: WorldViewPagePro
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span
-                    className="rounded px-1.5 py-px text-[10px] font-semibold"
-                    style={{ backgroundColor: '#fff0e8', color: ACCENT }}
+                    className="rounded border px-1.5 py-px text-[10px] font-semibold"
+                    style={{ backgroundColor: '#fff', borderColor: ACCENT, color: ACCENT }}
                   >
                     {typeLabel}
                   </span>
