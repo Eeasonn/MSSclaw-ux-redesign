@@ -26,6 +26,13 @@ export function deriveTaskTitle(
     .replace(/\s+/g, ' ')
     .trim();
 
+  // 专家团：保留完整标题
+  const teamMatch = text.match(/^@专家团[：:]\s*(.+)$/);
+  if (teamMatch) {
+    const name = teamMatch[1]!.trim();
+    return clampTitle(name ? `专家团：${name}` : '专家团任务', maxLen);
+  }
+
   // 去掉开头 @专家
   text = text.replace(/^(?:@\S+\s*)+/, '').trim();
 

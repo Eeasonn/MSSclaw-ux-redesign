@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { isWarRoom } from '@/domain/chat';
+import { isWarRoom, isExpertTeamTask, getExpertTeamLabel } from '@/domain/chat';
 import { cn } from '@/lib/utils';
 import { useAppViewStore } from '@/stores/appViewStore';
 import { useConversationStore } from '@/stores/conversationStore';
@@ -71,6 +71,8 @@ export function SidebarTaskPanel() {
         <div className="max-h-[260px] overflow-y-auto scroll-hidden px-2 pb-2">
           {visible.map((chat) => {
             const warroom = isWarRoom(chat);
+            const expertTeam = isExpertTeamTask(chat);
+            const teamLabel = expertTeam ? getExpertTeamLabel(chat) : null;
             const active = appView === 'task' && currentChatId === chat.id;
             return (
               <button
@@ -81,13 +83,18 @@ export function SidebarTaskPanel() {
                   'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[12px] text-zinc-600 transition hover:bg-black/[0.04] hover:text-zinc-900',
                   active && 'bg-black/[0.05] font-medium text-zinc-900',
                 )}
-                title={warroom ? `协作室：${chat.title}` : chat.title}
+                title={warroom ? `协作室：${chat.title}` : expertTeam ? `专家团：${teamLabel ?? chat.title}` : chat.title}
               >
                 <span className="min-w-0 flex-1 truncate">
-                  {warroom ? `协作室：${chat.title}` : chat.title}
+                  {warroom
+                    ? `协作室：${chat.title}`
+                    : expertTeam
+                      ? `专家团：${teamLabel ?? chat.title}`
+                      : chat.title}
                 </span>
                 <span className="flex shrink-0 items-center gap-1 text-[10px] text-zinc-400">
-                  {warroom && <i className="fa-solid fa-users text-[10px] text-indigo-500" />}
+                  {expertTeam && <i className="fa-solid fa-users-gear text-[10px] text-claw-600" />}
+                  {warroom && !expertTeam && <i className="fa-solid fa-users text-[10px] text-indigo-500" />}
                   {formatRelativeTime(chat.pinnedAt ?? chat.createdAt)}
                 </span>
               </button>

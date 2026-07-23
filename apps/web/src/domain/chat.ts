@@ -75,6 +75,19 @@ export function isWarRoom(chat: Pick<ChatConfig, 'type' | 'sessionGroup'>): bool
   return chat.type === 'group' || chat.sessionGroup === 'pinned';
 }
 
+const EXPERT_TEAM_TITLE_RE = /^专家团[·：:]\s*(.+)$/;
+
+/** 判断是否为专家团任务（通过标题前缀识别） */
+export function isExpertTeamTask(chat: Pick<ChatConfig, 'title'>): boolean {
+  return EXPERT_TEAM_TITLE_RE.test(chat.title);
+}
+
+/** 提取专家团场景名；若不是专家团任务则返回 null */
+export function getExpertTeamLabel(chat: Pick<ChatConfig, 'title'>): string | null {
+  const m = chat.title.match(EXPERT_TEAM_TITLE_RE);
+  return m ? m[1]!.trim() : null;
+}
+
 export function isWarRoomAdmin(chat: ChatConfig, userId?: string): boolean {
   const uid = userId ?? getCurrentUserId();
   if (!isWarRoom(chat)) return false;

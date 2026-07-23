@@ -1061,7 +1061,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     );
 
     const id = get().createAgentTaskSession({
-      title: `专家团 · ${scenarioLabel}`,
+      title: `专家团：${scenarioLabel}`,
       agentName: bound?.name ?? first.label,
       agentIcon: bound?.icon ?? 'fa-users',
       agentId: bound?.id ?? first.agentId,
