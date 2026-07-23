@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import type {
   PrototypeAgentSeed,
@@ -16,6 +16,7 @@ import { type PortalContentItem } from '@/domain/prototype/portalContent';
 import {
   SCENARIO_CAPABILITY_CATEGORIES,
   SCENARIO_CAPABILITY_MAP,
+  SCENARIO_PUBLISHED_AT,
   scenarioBelongsToCapability,
   type ScenarioCapabilityId,
 } from '@/domain/scenarioCapabilities';
@@ -30,11 +31,29 @@ import {
 import { hasGlobalOrgScope } from '@/domain/rolePerspective';
 import { getAgentPersona } from '@/domain/prototype/agentPersonas';
 import { resolveScenarioDemoPlan } from '@/domain/scenarioPipeline';
-import { PLAZA_TOOL_PICKS } from '@/domain/plazaToolPicks';
-import { isHomeAiTool } from '@/domain/aiToolCategories';
+import {
+  AI_TOOL_NAV_CATEGORIES,
+  type AiToolNavCategoryId,
+} from '@/domain/aiToolCategories';
+import { getPlazaToolPicks } from '@/domain/plazaToolPicks';
+import {
+  getPlazaToolGuides,
+  PLAZA_GUIDE_TYPE_LABEL,
+  type PlazaToolGuide,
+} from '@/domain/plazaToolGuides';
 import { openPortalCard } from '@/domain/portalNavigation';
 import { openResourceWithReturn } from '@/domain/openResourceNav';
 import { isNewScenario } from '@/domain/contentBadges';
+import {
+  RANK_MODE_OPTIONS,
+  heatScore,
+  sortByRankMode,
+  type RankMode,
+} from '@/domain/contentEngagement';
+import {
+  ensureEngagementSeeds,
+  useContentEngagementStore,
+} from '@/stores/contentEngagementStore';
 import { AgentAvatar } from '@/components/brand/AgentAvatar';
 import { ToolLogo } from '@/components/brand/ToolLogo';
 import { ScenarioDetailModal } from '@/components/content/ScenarioDetailModal';
@@ -42,7 +61,6 @@ import { useMarketplaceStore } from '@/stores/marketplaceStore';
 import { usePortalContentStore } from '@/stores/portalContentStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useAppViewStore } from '@/stores/appViewStore';
-import { useNavigationIntentStore } from '@/stores/navigationIntentStore';
 import type { ScenarioDemoPlan } from '@/domain/scenarioPipeline';
 
 interface PlazaRedesignProps {
@@ -70,7 +88,6 @@ const SCENARIO_OUTCOMES: Record<string, string> = {
 
 const ACCENT = '#c0512f';
 const ACCENT_SOFT = '#fff0e8';
-const SURFACE = '#faf7f2';
 const FG = '#1c1a17';
 const MUTED = '#6b6966';
 const LINE = '#d4d2cf';
@@ -190,7 +207,7 @@ function LockHint() {
   return <span className="text-[10px] text-[#c0512f]">由权限锁定</span>;
 }
 
-function contentToCard(item: PortalContentItem): PortalMapCard {
+export function contentToCard(item: PortalContentItem): PortalMapCard {
   return {
     id: `portal:${item.id}`,
     kind: item.type,
@@ -220,6 +237,125 @@ function resolveCardAgent(
   return agents.find((a) => a.name === card.title);
 }
 
+function MiniSelect<T extends string>({
+  value,
+  onChange,
+  options,
+  ariaLabel,
+  disabled,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { id: T; label: string }[];
+  ariaLabel: string;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="relative w-[92px] shrink-0">
+      <select
+        aria-label={ariaLabel}
+        disabled={disabled}
+        value={value}
+        onChange={(e) => onChange(e.target.value as T)}
+        className="w-full appearance-none rounded-full border border-zinc-200/90 bg-white py-1.5 pl-2.5 pr-6 text-[11px] font-medium text-zinc-700 outline-none transition hover:border-zinc-300 focus:border-zinc-400 disabled:bg-zinc-100 disabled:text-zinc-500"
+      >
+        {options.map((m) => (
+          <option key={m.id} value={m.id}>
+            {m.label}
+          </option>
+        ))}
+      </select>
+      <i className="fa-solid fa-chevron-down pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[8px] text-zinc-400" />
+    </div>
+  );
+}
+
+function HowToDrawer({
+  toolName,
+  guides,
+  onClose,
+  onOpenGuide,
+}: {
+  toolName: string;
+  guides: PlazaToolGuide[];
+  onClose: () => void;
+  onOpenGuide: (g: PlazaToolGuide) => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/20" onClick={onClose}>
+      <aside
+        className="flex h-full w-full max-w-[320px] flex-col border-l border-zinc-200 bg-white shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-zinc-100 px-4 py-3.5">
+          <div className="min-w-0">
+            <p className="font-serif text-[12px] italic text-zinc-400">How to</p>
+            <h3 className="mt-0.5 truncate text-[14px] font-semibold text-zinc-900">{toolName}</h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg px-2 py-1 text-[12px] text-zinc-400 hover:bg-zinc-50 hover:text-zinc-700"
+          >
+            关闭
+          </button>
+        </div>
+        <div className="flex-1 space-y-2 overflow-y-auto px-4 py-3">
+          {guides.map((g) => (
+            <button
+              key={g.id}
+              type="button"
+              onClick={() => onOpenGuide(g)}
+              className="flex w-full items-start gap-2.5 rounded-xl border border-zinc-200/80 bg-zinc-50/50 px-3 py-2.5 text-left transition hover:border-zinc-300 hover:bg-white"
+            >
+              <span className="mt-0.5 shrink-0 rounded-md bg-zinc-900/90 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
+                {PLAZA_GUIDE_TYPE_LABEL[g.type]}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[12px] font-semibold text-zinc-800">{g.title}</span>
+                {g.blurb ? (
+                  <span className="mt-0.5 block text-[10px] leading-snug text-zinc-400">{g.blurb}</span>
+                ) : null}
+              </span>
+            </button>
+          ))}
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+function CardEngagementFooter({
+  contentId,
+  baseUses = 0,
+  publishedAt,
+}: {
+  contentId: string;
+  baseUses?: number;
+  publishedAt?: string | null;
+}) {
+  const e = useContentEngagementStore((s) => s.get(contentId));
+  const uses = e.uses + baseUses;
+  const h = Math.round(heatScore({ ...e, uses }));
+  return (
+    <div className="mt-auto flex flex-wrap items-center gap-3 text-[10px]" style={{ color: MUTED }}>
+      {publishedAt ? <span>{publishedAt}</span> : null}
+      <span title="浏览量">
+        <i className="fa-regular fa-eye mr-0.5" />
+        {uses}
+      </span>
+      <span title="点赞量">
+        <i className="fa-solid fa-thumbs-up mr-0.5" />
+        {e.likes}
+      </span>
+      <span title="热度">
+        <i className="fa-solid fa-fire mr-0.5" style={{ color: ACCENT }} />
+        {h}
+      </span>
+    </div>
+  );
+}
+
 export function PlazaRedesign({
   onInvokeAgent,
   onInvokeSkill,
@@ -232,7 +368,8 @@ export function PlazaRedesign({
   const showToast = useMarketplaceStore((s) => s.showToast);
   const user = useSessionStore((s) => s.user);
   const setAppView = useAppViewStore((s) => s.setAppView);
-  const focusPortalType = useNavigationIntentStore((s) => s.focusPortalType);
+  const engagementOf = useContentEngagementStore((s) => s.get);
+  const engagementById = useContentEngagementStore((s) => s.byId);
 
   const { perspective, regionId: lockedRegionId, deptId: lockedDeptId, regionLocked, domainLocked } =
     usePlazaPerspective();
@@ -242,6 +379,11 @@ export function PlazaRedesign({
   const [capability, setCapability] = useState<ScenarioCapabilityId | 'all'>('all');
   const [bottomTab, setBottomTab] = useState<BottomTab>('skills');
   const [detailBundle, setDetailBundle] = useState<ScenarioBundle | null>(null);
+  const [insightRankMode, setInsightRankMode] = useState<RankMode>('trending');
+  const [scenarioRankMode, setScenarioRankMode] = useState<RankMode>('trending');
+  const [bottomRankMode, setBottomRankMode] = useState<RankMode>('trending');
+  const [activeToolCategory, setActiveToolCategory] = useState<AiToolNavCategoryId>('chat');
+  const [howToTool, setHowToTool] = useState<PrototypeToolSeed | null>(null);
 
   const effectiveRegionId = regionLocked ? lockedRegionId : regionId;
   const effectiveDeptId = domainLocked ? lockedDeptId : deptId;
@@ -278,74 +420,54 @@ export function PlazaRedesign({
     return new Map(bundles.map((b) => [b.id, b]));
   }, [bundles]);
 
+  const toolsById = useMemo(() => {
+    return new Map(tools.map((t) => [t.id, t]));
+  }, [tools]);
+
   const publicInsights = useMemo(() => {
-    return portalContent
-      .filter((i) => i.published !== false && isPublicInsight(i))
-      .sort((a, b) => (b.publishedAt ?? '').localeCompare(a.publishedAt ?? ''))
-      .slice(0, 3);
-  }, [portalContent]);
+    const list = portalContent.filter((i) => i.published !== false && isPublicInsight(i));
+    return sortByRankMode(list, insightRankMode, engagementOf).slice(0, 3);
+  }, [portalContent, insightRankMode, engagementOf, engagementById]);
 
   const filteredInsights = useMemo(() => {
-    return portalContent
-      .filter(
-        (i) =>
-          i.published !== false &&
-          !isPublicInsight(i) &&
-          regionMatch(i, effectiveRegionId) &&
-          domainMatch(i, effectiveDeptId) &&
-          capabilityMatch(i, capability),
-      )
-      .sort(
-        (a, b) =>
-          Number(Boolean(b.isGold)) - Number(Boolean(a.isGold)) ||
-          (b.publishedAt ?? '').localeCompare(a.publishedAt ?? ''),
-      );
-  }, [portalContent, effectiveRegionId, effectiveDeptId, capability]);
+    const list = portalContent.filter(
+      (i) =>
+        i.published !== false &&
+        !isPublicInsight(i) &&
+        regionMatch(i, effectiveRegionId) &&
+        domainMatch(i, effectiveDeptId) &&
+        capabilityMatch(i, capability),
+    );
+    return sortByRankMode(list, insightRankMode, engagementOf);
+  }, [portalContent, effectiveRegionId, effectiveDeptId, capability, insightRankMode, engagementOf, engagementById]);
 
   const featuredScenes = useMemo(() => {
-    return FEATURED_SCENARIOS.filter((s) => {
+    const list = FEATURED_SCENARIOS.filter((s) => {
       if (capability !== 'all' && !scenarioBelongsToCapability(s.id, capability)) return false;
       return true;
-    })
-      .map((s) => ({ def: s, bundle: bundleById.get(s.id) }))
-      .filter(({ bundle }) => Boolean(bundle))
-      .slice(0, 4);
-  }, [bundleById, capability]);
+    }).map((s) => ({
+      id: s.id,
+      def: s,
+      bundle: bundleById.get(s.id),
+      publishedAt: SCENARIO_PUBLISHED_AT[s.id as keyof typeof SCENARIO_PUBLISHED_AT] ?? '',
+    }));
+    const withBundle = list.filter(
+      (x): x is typeof x & { bundle: ScenarioBundle } => Boolean(x.bundle),
+    );
+    return sortByRankMode(withBundle, scenarioRankMode, engagementOf).slice(0, 4);
+  }, [bundleById, capability, scenarioRankMode, engagementOf, engagementById]);
 
   const hotScenarioIds = useMemo(() => {
     return [...FEATURED_SCENARIOS]
       .map((s) => ({ id: s.id, bundle: bundleById.get(s.id) }))
       .filter((x): x is { id: string; bundle: ScenarioBundle } => Boolean(x.bundle))
-      .sort((a, b) => {
-        const aScore = a.bundle.agents.length + a.bundle.tools.length + a.bundle.cases.length;
-        const bScore = b.bundle.agents.length + b.bundle.tools.length + b.bundle.cases.length;
-        return bScore - aScore;
-      })
+      .sort((a, b) => heatScore(engagementOf(b.id)) - heatScore(engagementOf(a.id)))
       .slice(0, 3)
       .map((x) => x.id);
-  }, [bundleById]);
-
-  const homeAiTools = useMemo(() => tools.filter(isHomeAiTool), [tools]);
-
-  const chatTools = useMemo(() => {
-    const picks = PLAZA_TOOL_PICKS.chat;
-    const ids = [...picks.external, ...picks.internal].slice(0, 4);
-    return ids
-      .map((id) => homeAiTools.find((t) => t.id === id))
-      .filter((t): t is PrototypeToolSeed => Boolean(t));
-  }, [homeAiTools]);
-
-  const searchOfficeTools = useMemo(() => {
-    const search = PLAZA_TOOL_PICKS.search;
-    const office = PLAZA_TOOL_PICKS.office;
-    const ids = [...search.external, ...search.internal, ...office.external, ...office.internal].slice(0, 4);
-    return ids
-      .map((id) => homeAiTools.find((t) => t.id === id))
-      .filter((t): t is PrototypeToolSeed => Boolean(t));
-  }, [homeAiTools]);
+  }, [bundleById, engagementOf, engagementById]);
 
   const filteredSkills = useMemo(() => {
-    return skills
+    const list = skills
       .filter(
         (s) =>
           s.published &&
@@ -353,34 +475,41 @@ export function PlazaRedesign({
           domainMatch(s, effectiveDeptId) &&
           capabilityMatch(s, capability),
       )
-      .sort((a, b) => b.invokes - a.invokes)
-      .slice(0, 4);
-  }, [skills, effectiveRegionId, effectiveDeptId, capability]);
+      .map((s) => ({ ...s, publishedAt: s.uploadedAt ?? '' }));
+    return sortByRankMode(list, bottomRankMode, engagementOf).slice(0, 4);
+  }, [skills, effectiveRegionId, effectiveDeptId, capability, bottomRankMode, engagementOf, engagementById]);
 
   const filteredAgents = useMemo(() => {
-    return agents
-      .filter(
-        (a) =>
-          a.published &&
-          (effectiveRegionId === 'all' ||
-            (a.ownerRegionIds?.includes(effectiveRegionId) ?? !a.ownerRegionIds?.length)) &&
-          domainMatch(a, effectiveDeptId),
-      )
-      .sort((a, b) => b.invokes - a.invokes)
-      .slice(0, 4);
-  }, [agents, effectiveRegionId, effectiveDeptId]);
+    const list = agents.filter(
+      (a) =>
+        a.published &&
+        (effectiveRegionId === 'all' ||
+          (a.ownerRegionIds?.includes(effectiveRegionId) ?? !a.ownerRegionIds?.length)) &&
+        domainMatch(a, effectiveDeptId),
+    );
+    return sortByRankMode(list, bottomRankMode, engagementOf).slice(0, 4);
+  }, [agents, effectiveRegionId, effectiveDeptId, bottomRankMode, engagementOf, engagementById]);
 
   const teamScenes = useMemo(() => {
-    return featuredScenes.slice(0, 4);
-  }, [featuredScenes]);
+    return sortByRankMode(featuredScenes, bottomRankMode, engagementOf).slice(0, 4);
+  }, [featuredScenes, bottomRankMode, engagementOf, engagementById]);
+
+  useEffect(() => {
+    const ids = [
+      ...portalContent.map((p) => p.id),
+      ...FEATURED_SCENARIOS.map((s) => s.id),
+      ...skills.map((s) => s.id),
+      ...agents.map((a) => a.id),
+    ];
+    ensureEngagementSeeds(ids);
+  }, [portalContent, skills, agents]);
 
   function openScenarioMap() {
     openResourceWithReturn('ai-map');
   }
 
-  function openOpsMore(type: 'news' | 'training' | 'case' = 'news') {
-    focusPortalType(type);
-    setAppView('portal-ops');
+  function openWorldView() {
+    setAppView('world-view');
   }
 
   function handleCard(card: PortalMapCard) {
@@ -424,6 +553,18 @@ export function PlazaRedesign({
     setDetailBundle(bundle);
   }
 
+  function openHowTo(tool: PrototypeToolSeed) {
+    setHowToTool(tool);
+  }
+
+  function openGuideResource(g: PlazaToolGuide) {
+    if (!g.url || g.url === '#') {
+      showToast(`指引「${g.title}」演示占位，后续可挂 PPT / 图片 / 视频`);
+      return;
+    }
+    window.open(g.url, '_blank', 'noopener,noreferrer');
+  }
+
   const perspectiveScope =
     perspective.kind === 'global'
       ? '全部区域 · 全部领域'
@@ -431,15 +572,25 @@ export function PlazaRedesign({
         ? '区域已锁定 · 领域可选'
         : '领域已锁定 · 区域可选';
 
-  const containerStyle = { backgroundColor: SURFACE, color: FG };
   const surfaceStyle = { backgroundColor: '#ffffff', borderColor: LINE };
 
+  const currentToolPicks = useMemo(() => {
+    const picks = getPlazaToolPicks(activeToolCategory);
+    const external = picks.external
+      .map((id) => toolsById.get(id))
+      .filter((t): t is PrototypeToolSeed => Boolean(t));
+    const internal = picks.internal
+      .map((id) => toolsById.get(id))
+      .filter((t): t is PrototypeToolSeed => Boolean(t));
+    return { external, internal };
+  }, [activeToolCategory, toolsById]);
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto scroll-hidden pb-4" style={containerStyle}>
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto scroll-hidden bg-white pb-4">
       {/* 视角摘要条 */}
       <div
-        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3"
-        style={{ backgroundColor: '#f3f0ec', borderColor: LINE }}
+        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-white px-4 py-3"
+        style={{ borderColor: LINE }}
       >
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: MUTED }}>
@@ -479,7 +630,7 @@ export function PlazaRedesign({
             disabled={regionLocked}
             value={effectiveRegionId}
             onChange={(e) => setRegionId(e.target.value as RegionId | 'all')}
-            className="w-[120px] rounded-lg border bg-white px-2.5 py-1.5 text-[11px] outline-none transition disabled:bg-[#f3f0ec] disabled:text-[#6b6966]"
+            className="w-[120px] rounded-lg border bg-white px-2.5 py-1.5 text-[11px] outline-none transition disabled:bg-[#f4f4f5] disabled:text-[#6b6966]"
             style={{ borderColor: LINE, color: FG }}
           >
             <option value="all">全部区域</option>
@@ -503,7 +654,7 @@ export function PlazaRedesign({
             disabled={domainLocked}
             value={effectiveDeptId}
             onChange={(e) => setDeptId(e.target.value as DeptId | 'all')}
-            className="w-[120px] rounded-lg border bg-white px-2.5 py-1.5 text-[11px] outline-none transition disabled:bg-[#f3f0ec] disabled:text-[#6b6966]"
+            className="w-[120px] rounded-lg border bg-white px-2.5 py-1.5 text-[11px] outline-none transition disabled:bg-[#f4f4f5] disabled:text-[#6b6966]"
             style={{ borderColor: LINE, color: FG }}
           >
             <option value="all">全部领域</option>
@@ -560,14 +711,22 @@ export function PlazaRedesign({
             <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: FG }}>
               洞察 & 培训
             </span>
-            <button
-              type="button"
-              onClick={() => openOpsMore('news')}
-              className="text-[11px] font-medium transition hover:opacity-80"
-              style={{ color: ACCENT }}
-            >
-              查看更多 →
-            </button>
+            <div className="flex items-center gap-2">
+              <MiniSelect
+                ariaLabel="洞察排序"
+                value={insightRankMode}
+                onChange={setInsightRankMode}
+                options={[...RANK_MODE_OPTIONS]}
+              />
+              <button
+                type="button"
+                onClick={openWorldView}
+                className="text-[11px] font-medium transition hover:opacity-80"
+                style={{ color: ACCENT }}
+              >
+                查看更多 →
+              </button>
+            </div>
           </div>
 
           <div>
@@ -580,7 +739,7 @@ export function PlazaRedesign({
                   key={item.id}
                   type="button"
                   onClick={() => handleCard(contentToCard(item))}
-                  className="flex flex-col gap-1 rounded-lg border p-2.5 text-left transition hover:bg-[#faf7f2]"
+                  className="flex flex-col gap-2 rounded-lg border p-2.5 text-left transition hover:bg-zinc-50/60"
                   style={{ borderColor: LINE }}
                 >
                   <span className="text-[12px] font-semibold" style={{ color: FG }}>
@@ -596,6 +755,7 @@ export function PlazaRedesign({
                       </Tag>
                     ))}
                   </div>
+                  <CardEngagementFooter contentId={item.id} publishedAt={item.publishedAt} />
                 </button>
               ))}
             </div>
@@ -612,7 +772,7 @@ export function PlazaRedesign({
                 key={item.id}
                 type="button"
                 onClick={() => handleCard(contentToCard(item))}
-                className="flex flex-col gap-1 rounded-lg border p-2.5 text-left transition hover:bg-[#faf7f2]"
+                className="flex flex-col gap-2 rounded-lg border p-2.5 text-left transition hover:bg-zinc-50/60"
                 style={{ borderColor: LINE }}
               >
                 <span className="text-[12px] font-semibold" style={{ color: FG }}>
@@ -633,12 +793,13 @@ export function PlazaRedesign({
                     </Tag>
                   ))}
                 </div>
+                <CardEngagementFooter contentId={item.id} publishedAt={item.publishedAt} />
               </button>
             ))}
             {filteredInsights.length > 3 ? (
               <button
                 type="button"
-                onClick={() => openOpsMore('case')}
+                onClick={openWorldView}
                 className="mt-auto self-start text-[11px] font-medium transition hover:opacity-80"
                 style={{ color: ACCENT }}
               >
@@ -657,18 +818,26 @@ export function PlazaRedesign({
             <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: FG }}>
               精选场景
             </span>
-            <button
-              type="button"
-              onClick={openScenarioMap}
-              className="text-[11px] font-medium transition hover:opacity-80"
-              style={{ color: ACCENT }}
-            >
-              查看场景地图 →
-            </button>
+            <div className="flex items-center gap-2">
+              <MiniSelect
+                ariaLabel="场景排序"
+                value={scenarioRankMode}
+                onChange={setScenarioRankMode}
+                options={[...RANK_MODE_OPTIONS]}
+              />
+              <button
+                type="button"
+                onClick={openScenarioMap}
+                className="text-[11px] font-medium transition hover:opacity-80"
+                style={{ color: ACCENT }}
+              >
+                查看场景地图 →
+              </button>
+            </div>
           </div>
 
           <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2">
-            {featuredScenes.map(({ def, bundle }) => {
+            {featuredScenes.map(({ def, bundle, publishedAt }) => {
               const b = bundle!;
               const experts = b.agents.slice(0, 2);
               const skillCards = b.tools.filter((c) => c.kind === 'skill').slice(0, 3);
@@ -758,8 +927,8 @@ export function PlazaRedesign({
                     </div>
                   </button>
 
-                  <div className="mt-auto flex items-center justify-between pt-1">
-                    <div className="flex flex-wrap gap-1">
+                  <div className="mt-auto flex flex-col gap-2 pt-1">
+                    <div className="flex flex-wrap items-center gap-1">
                       {isHot ? (
                         <span
                           className="rounded px-1.5 py-px text-[9px] font-semibold"
@@ -785,14 +954,17 @@ export function PlazaRedesign({
                         </span>
                       ) : null}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => startScenario(b)}
-                      className="text-[11px] font-semibold transition hover:opacity-80"
-                      style={{ color: ACCENT }}
-                    >
-                      开启任务 →
-                    </button>
+                    <div className="flex items-center justify-between">
+                      <CardEngagementFooter contentId={def.id} publishedAt={publishedAt} />
+                      <button
+                        type="button"
+                        onClick={() => startScenario(b)}
+                        className="text-[11px] font-semibold transition hover:opacity-80"
+                        style={{ color: ACCENT }}
+                      >
+                        开启任务 →
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -802,7 +974,7 @@ export function PlazaRedesign({
       </div>
 
       {/* 下区：马上能用 */}
-      <div className="rounded-xl border p-4" style={surfaceStyle}>
+      <div className="rounded-xl border bg-white p-4" style={{ borderColor: LINE }}>
         <div className="mb-3 flex items-center justify-between">
           <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: FG }}>
             马上能用
@@ -811,49 +983,103 @@ export function PlazaRedesign({
             全局公共入口，不受区域/领域筛选影响
           </span>
         </div>
-        <div className="mb-4">
-          <div className="mb-2 text-[11px] font-semibold" style={{ color: FG }}>
-            AI 对话
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {chatTools.map((tool) => (
-              <ToolPill key={tool.id} tool={tool} onClick={() => openTool(tool)} />
-            ))}
-          </div>
+        <div className="mb-4 flex flex-wrap gap-2">
+          {AI_TOOL_NAV_CATEGORIES.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setActiveToolCategory(c.id)}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium transition',
+                activeToolCategory === c.id
+                  ? 'border-transparent text-white'
+                  : 'bg-white hover:border-[#6b6966]',
+              )}
+              style={
+                activeToolCategory === c.id
+                  ? { backgroundColor: FG }
+                  : { borderColor: LINE, color: FG }
+              }
+              title={c.blurb}
+            >
+              <i className={cn('fa-solid text-[10px]', c.icon)} />
+              {c.label}
+            </button>
+          ))}
         </div>
-        <div>
-          <div className="mb-2 text-[11px] font-semibold" style={{ color: FG }}>
-            AI 搜索 & 办公
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="flex flex-col gap-2">
+            <div className="text-[11px] font-semibold" style={{ color: FG }}>
+              外部
+            </div>
+            <div className="flex flex-col gap-2">
+              {currentToolPicks.external.map((tool) => (
+                <ToolCard
+                  key={tool.id}
+                  tool={tool}
+                  onClick={() => openTool(tool)}
+                  onHowTo={() => openHowTo(tool)}
+                />
+              ))}
+              {!currentToolPicks.external.length && (
+                <p className="text-[10px]" style={{ color: MUTED }}>
+                  该分类暂无外部推荐
+                </p>
+              )}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {searchOfficeTools.map((tool) => (
-              <ToolPill key={tool.id} tool={tool} onClick={() => openTool(tool)} />
-            ))}
+          <div className="flex flex-col gap-2">
+            <div className="text-[11px] font-semibold" style={{ color: FG }}>
+              内部
+            </div>
+            <div className="flex flex-col gap-2">
+              {currentToolPicks.internal.map((tool) => (
+                <ToolCard
+                  key={tool.id}
+                  tool={tool}
+                  onClick={() => openTool(tool)}
+                  onHowTo={() => openHowTo(tool)}
+                />
+              ))}
+              {!currentToolPicks.internal.length && (
+                <p className="text-[10px]" style={{ color: MUTED }}>
+                  该分类暂无内部推荐
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* 下区：Tab 切换 */}
-      <div className="rounded-xl border p-4" style={surfaceStyle}>
-        <div className="mb-3 flex gap-1 border-b pb-2" style={{ borderColor: LINE }}>
-          {[
-            { id: 'skills', label: '热门技能' },
-            { id: 'agents', label: '热门专家' },
-            { id: 'teams', label: '专家团' },
-          ].map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setBottomTab(t.id as BottomTab)}
-              className={cn(
-                'rounded-md px-3 py-1 text-[11px] font-medium transition',
-                bottomTab === t.id ? 'text-white' : 'hover:bg-[#f3f0ec]',
-              )}
-              style={bottomTab === t.id ? { backgroundColor: FG } : { color: FG }}
-            >
-              {t.label}
-            </button>
-          ))}
+      <div className="rounded-xl border bg-white p-4" style={{ borderColor: LINE }}>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b pb-2" style={{ borderColor: LINE }}>
+          <div className="flex gap-1">
+            {[
+              { id: 'skills', label: '热门技能' },
+              { id: 'agents', label: '热门专家' },
+              { id: 'teams', label: '专家团' },
+            ].map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setBottomTab(t.id as BottomTab)}
+                className={cn(
+                  'rounded-md px-3 py-1 text-[11px] font-medium transition',
+                  bottomTab === t.id ? 'text-white' : 'hover:bg-[#f4f4f5]',
+                )}
+                style={bottomTab === t.id ? { backgroundColor: FG } : { color: FG }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <MiniSelect
+            ariaLabel="Tab 排序"
+            value={bottomRankMode}
+            onChange={setBottomRankMode}
+            options={[...RANK_MODE_OPTIONS]}
+          />
         </div>
 
         {bottomTab === 'skills' ? (
@@ -861,7 +1087,7 @@ export function PlazaRedesign({
             {filteredSkills.map((skill) => (
               <div
                 key={skill.id}
-                className="flex flex-col gap-1 rounded-lg border p-3"
+                className="flex flex-col gap-2 rounded-lg border bg-white p-3"
                 style={{ borderColor: LINE }}
               >
                 <div className="flex items-center gap-2">
@@ -873,8 +1099,7 @@ export function PlazaRedesign({
                 <p className="line-clamp-2 text-[10px]" style={{ color: MUTED }}>
                   {skill.desc.replace(/^【[^】]*】/, '')}
                 </p>
-                <div className="flex flex-wrap gap-1 pt-1">
-                  <Tag className="border-[#d4d2cf] text-[#6b6966]">调用 {formatInvokes(skill.invokes)}</Tag>
+                <div className="flex flex-wrap gap-1">
                   {skill.ownerRegionId ? (
                     <Tag className="border-[#4a7c59] text-[#4a7c59]">{getRegionLabel(skill.ownerRegionId)}</Tag>
                   ) : (
@@ -886,6 +1111,11 @@ export function PlazaRedesign({
                     </Tag>
                   ))}
                 </div>
+                <CardEngagementFooter
+                  contentId={skill.id}
+                  baseUses={skill.invokes}
+                  publishedAt={skill.uploadedAt}
+                />
               </div>
             ))}
           </div>
@@ -899,7 +1129,7 @@ export function PlazaRedesign({
                   key={agent.id}
                   type="button"
                   onClick={() => onInvokeAgent(agent)}
-                  className="flex items-start gap-3 rounded-lg border p-3 text-left transition hover:bg-[#faf7f2]"
+                  className="flex items-start gap-3 rounded-lg border bg-white p-3 text-left transition hover:bg-zinc-50/60"
                   style={{ borderColor: LINE }}
                 >
                   <AgentAvatar agentId={agent.id} size={36} title={persona.name} />
@@ -914,7 +1144,6 @@ export function PlazaRedesign({
                       {persona.tagline}
                     </p>
                     <div className="flex flex-wrap gap-1 pt-1">
-                      <Tag className="border-[#d4d2cf] text-[#6b6966]">调用 {formatInvokes(agent.invokes)}</Tag>
                       {agent.ownerRegionIds?.length ? (
                         agent.ownerRegionIds.slice(0, 2).map((r) => (
                           <Tag key={r} className="border-[#4a7c59] text-[#4a7c59]">
@@ -930,6 +1159,7 @@ export function PlazaRedesign({
                         </Tag>
                       ))}
                     </div>
+                    <CardEngagementFooter contentId={agent.id} baseUses={agent.invokes} />
                   </div>
                 </button>
               );
@@ -937,13 +1167,13 @@ export function PlazaRedesign({
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {teamScenes.map(({ def, bundle }) => {
+            {teamScenes.map(({ def, bundle, publishedAt }) => {
               const b = bundle!;
               const teamAgents = b.agents.slice(0, 4);
               return (
                 <div
                   key={def.id}
-                  className="flex flex-col gap-2 rounded-lg border p-3"
+                  className="flex flex-col gap-2 rounded-lg border bg-white p-3"
                   style={{ borderColor: LINE }}
                 >
                   <div className="flex items-center gap-2">
@@ -979,10 +1209,11 @@ export function PlazaRedesign({
                       );
                     })}
                   </div>
+                  <CardEngagementFooter contentId={def.id} publishedAt={publishedAt} />
                   <button
                     type="button"
                     onClick={() => startScenario(b)}
-                    className="mt-auto self-start text-[11px] font-semibold transition hover:opacity-80"
+                    className="mt-1 self-start text-[11px] font-semibold transition hover:opacity-80"
                     style={{ color: ACCENT }}
                   >
                     开启任务 →
@@ -993,6 +1224,15 @@ export function PlazaRedesign({
           </div>
         )}
       </div>
+
+      {howToTool ? (
+        <HowToDrawer
+          toolName={howToTool.name}
+          guides={getPlazaToolGuides(howToTool.id)}
+          onClose={() => setHowToTool(null)}
+          onOpenGuide={openGuideResource}
+        />
+      ) : null}
 
       <ScenarioDetailModal
         bundle={detailBundle}
@@ -1006,20 +1246,56 @@ export function PlazaRedesign({
   );
 }
 
-function ToolPill({ tool, onClick }: { tool: PrototypeToolSeed; onClick: () => void }) {
-  const isExternal = tool.sourceType === 'external';
+function ToolCard({
+  tool,
+  onClick,
+  onHowTo,
+}: {
+  tool: PrototypeToolSeed;
+  onClick: () => void;
+  onHowTo: () => void;
+}) {
+  const hasGuide = getPlazaToolGuides(tool.id).length > 0;
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center gap-2 rounded-lg border bg-white px-3 py-2 text-[11px] transition hover:bg-[#faf7f2]"
-      style={{ borderColor: LINE, color: FG }}
+      className="flex items-start gap-3 rounded-lg border bg-white p-3 text-left transition hover:bg-zinc-50/60"
+      style={{ borderColor: LINE }}
     >
-      <span className="flex h-4 w-4 items-center justify-center rounded-sm" style={{ backgroundColor: '#f0eeeb' }}>
-        <ToolLogo name={tool.name} logoUrl={tool.logoUrl} icon={tool.icon} size={14} />
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: '#f0eeeb' }}>
+        <ToolLogo name={tool.name} logoUrl={tool.logoUrl} icon={tool.icon} size={22} />
       </span>
-      {tool.name}
-      {isExternal ? <span style={{ color: MUTED }}>↗</span> : null}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className="text-[12px] font-semibold" style={{ color: FG }}>
+            {tool.name}
+          </span>
+          <span className="text-[10px]" style={{ color: MUTED }}>
+            {tool.sourceType === 'external' ? '外部' : '内部'}
+          </span>
+        </div>
+        <p className="line-clamp-2 text-[10px]" style={{ color: MUTED }}>
+          {tool.desc}
+        </p>
+        <div className="mt-1 flex items-center gap-2 text-[10px]" style={{ color: MUTED }}>
+          <span>调用 {formatInvokes(tool.invokes)}</span>
+          {hasGuide ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onHowTo();
+              }}
+              className="flex h-4 w-4 items-center justify-center rounded-full border text-[10px] font-semibold transition hover:border-zinc-400 hover:text-zinc-700"
+              style={{ borderColor: LINE, color: ACCENT }}
+              title="How to 指引"
+            >
+              ?
+            </button>
+          ) : null}
+        </div>
+      </div>
     </button>
   );
 }

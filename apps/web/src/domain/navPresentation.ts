@@ -95,6 +95,14 @@ export const NAV_PRESENTATION_META: NavPresentationMeta[] = [
     adminOnly: true,
   },
   {
+    id: 'world-view',
+    label: '看世界',
+    subtitle: '门户内容完整列表',
+    icon: 'fa-globe',
+    section: 'workspace',
+    hiddenFromSidebar: true,
+  },
+  {
     id: 'admin',
     label: '组织权限',
     subtitle: '组织 · 部门 · 角色 · 成员治理',
@@ -180,6 +188,7 @@ function mvpForRole(role: PlatformRole): Record<NavSlotId, boolean> {
         'portal-ops': true,
         presentation: true,
         'workspace-config': true,
+        'world-view': true,
       },
       role,
     );
@@ -196,6 +205,7 @@ function mvpForRole(role: PlatformRole): Record<NavSlotId, boolean> {
         'ai-map': true,
         agents: true,
         skills: true,
+        'world-view': true,
       },
       role,
     );
@@ -213,6 +223,7 @@ function mvpForRole(role: PlatformRole): Record<NavSlotId, boolean> {
         'ai-map': true,
         agents: true,
         skills: true,
+        'world-view': true,
       },
       role,
     );
@@ -229,6 +240,7 @@ function mvpForRole(role: PlatformRole): Record<NavSlotId, boolean> {
       'ai-map': true,
       agents: true,
       skills: true,
+      'world-view': true,
     },
     role,
   );

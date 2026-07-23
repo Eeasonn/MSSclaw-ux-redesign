@@ -18,6 +18,7 @@ export const APP_VIEWS = [
   'presentation',
   'workspace-config',
   'portal-ops',
+  'world-view',
 ] as const;
 export type AppView = (typeof APP_VIEWS)[number];
 

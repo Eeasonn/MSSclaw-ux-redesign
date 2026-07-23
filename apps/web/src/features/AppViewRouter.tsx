@@ -5,6 +5,7 @@ import { isAppViewPlaceholder } from '@/domain/appView';
 import type { PrototypeAgentSeed, PrototypeKbDocument, PrototypeSkillSeed } from '@/domain/prototype/types';
 import type { ScenarioDemoPlan } from '@/domain/scenarioPipeline';
 import { HomePage } from '@/features/home/HomePage';
+import { WorldViewPage } from '@/pages/WorldView/WorldViewPage';
 import { AppViewPlaceholder } from '@/components/shell/AppViewPlaceholder';
 import { ViewLoadingFallback } from '@/components/common/ViewLoadingFallback';
 import {
@@ -62,6 +63,7 @@ const VIEW_LABELS: Partial<Record<AppView, string>> = {
   presentation: '展示配置',
   'workspace-config': '租户配置',
   'portal-ops': '门户运营',
+  'world-view': '看世界',
 };
 
 function LazyView({ label, children }: { label: string; children: ReactNode }) {
@@ -215,6 +217,13 @@ export function AppViewRouter({ appView, handlers }: AppViewRouterProps) {
         <LazyView label={label}>
           <LazyPortalContentOpsPage />
         </LazyView>
+      );
+    case 'world-view':
+      return (
+        <WorldViewPage
+          onInvokeAgent={handlers.onInvokeAgent}
+          onInvokeSkill={handlers.onInvokeSkill}
+        />
       );
     default:
       return (
