@@ -71,11 +71,6 @@ interface PlazaRedesignProps {
   onInvokeSkill: (skill: PrototypeSkillSeed) => void;
 }
 
-type Perspective =
-  | { kind: 'global'; label: '全球管理者' }
-  | { kind: 'region'; label: string; regionId: RegionId }
-  | { kind: 'domain'; label: string; deptId: DeptId };
-
 type BottomTab = 'skills' | 'agents' | 'teams';
 
 const ACCENT = '#c0512f';
@@ -84,7 +79,6 @@ const MUTED = '#6b6966';
 const LINE = '#d4d2cf';
 
 function usePlazaPerspective(): {
-  perspective: Perspective;
   regionId: RegionId | 'all';
   deptId: DeptId | 'all';
   regionLocked: boolean;
@@ -95,7 +89,6 @@ function usePlazaPerspective(): {
     const role = user?.platformRole;
     if (hasGlobalOrgScope(role)) {
       return {
-        perspective: { kind: 'global', label: '全球管理者' },
         regionId: 'all',
         deptId: 'all',
         regionLocked: false,
@@ -104,11 +97,6 @@ function usePlazaPerspective(): {
     }
     if (user?.regionId) {
       return {
-        perspective: {
-          kind: 'region',
-          label: `区域负责人 · ${getRegionLabel(user.regionId)}`,
-          regionId: user.regionId,
-        },
         regionId: user.regionId,
         deptId: user?.deptIds?.[0] ?? 'all',
         regionLocked: true,
@@ -118,11 +106,6 @@ function usePlazaPerspective(): {
     if (user?.deptIds?.length) {
       const deptId = user.deptIds[0];
       return {
-        perspective: {
-          kind: 'domain',
-          label: `业务领域负责人 · ${getDeptLabel(deptId)}`,
-          deptId,
-        },
         regionId: 'all',
         deptId,
         regionLocked: false,
@@ -130,7 +113,6 @@ function usePlazaPerspective(): {
       };
     }
     return {
-      perspective: { kind: 'global', label: '全球管理者' },
       regionId: 'all',
       deptId: 'all',
       regionLocked: false,
@@ -337,7 +319,7 @@ export function PlazaRedesign({
   const engagementOf = useContentEngagementStore((s) => s.get);
   const engagementById = useContentEngagementStore((s) => s.byId);
 
-  const { perspective, regionId: lockedRegionId, deptId: lockedDeptId, regionLocked, domainLocked } =
+  const { regionId: lockedRegionId, deptId: lockedDeptId, regionLocked, domainLocked } =
     usePlazaPerspective();
 
   const [regionId, setRegionId] = useState<RegionId | 'all'>(lockedRegionId);
@@ -515,13 +497,6 @@ export function PlazaRedesign({
     window.open(g.url, '_blank', 'noopener,noreferrer');
   }
 
-  const perspectiveScope =
-    perspective.kind === 'global'
-      ? '全部区域 · 全部领域'
-      : perspective.kind === 'region'
-        ? '区域已锁定 · 领域可选'
-        : '领域已锁定 · 区域可选';
-
   const currentToolPicks = useMemo(() => {
     const picks = getPlazaToolPicks(activeToolCategory);
     const external = picks.external
@@ -536,35 +511,24 @@ export function PlazaRedesign({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto scroll-hidden bg-white pb-4">
       {/* 逛广场大标题 */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.15em]" style={{ color: MUTED }}>
-            MSS CLAW
-          </p>
-          <h1 className="text-[22px] font-semibold tracking-tight text-zinc-900 md:text-[26px]">
-            逛广场
-          </h1>
-          <p className="mt-0.5 text-[12px]" style={{ color: MUTED }}>
-            发现场景、能力与灵感
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 text-[11px]" style={{ color: MUTED }}>
-          <span className="rounded-full border px-2.5 py-1" style={{ borderColor: LINE }}>
-            {perspective.label}
-          </span>
-          <span>{perspectiveScope}</span>
-        </div>
+      <div>
+        <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.15em]" style={{ color: MUTED }}>
+          MSS CLAW
+        </p>
+        <h1 className="text-[22px] font-semibold tracking-tight text-zinc-900 md:text-[26px]">
+          逛广场
+        </h1>
+        <p className="mt-0.5 text-[12px]" style={{ color: MUTED }}>
+          发现场景、能力与灵感
+        </p>
       </div>
 
-      {/* 顶部控制区 */}
+      {/* 区域 / 领域筛选器 */}
       <div className="flex flex-wrap items-end gap-4">
         <div className={cn('flex flex-col gap-1', regionLocked && 'opacity-70')}>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>
-              区域
-            </span>
-            {regionLocked ? <LockHint /> : null}
-          </div>
+          <span className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>
+            区域
+          </span>
           <select
             aria-label="区域"
             disabled={regionLocked}
@@ -580,15 +544,13 @@ export function PlazaRedesign({
               </option>
             ))}
           </select>
+          {regionLocked ? <LockHint /> : null}
         </div>
 
         <div className={cn('flex flex-col gap-1', domainLocked && 'opacity-70')}>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>
-              领域
-            </span>
-            {domainLocked ? <LockHint /> : null}
-          </div>
+          <span className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>
+            领域
+          </span>
           <select
             aria-label="领域"
             disabled={domainLocked}
@@ -604,6 +566,7 @@ export function PlazaRedesign({
               </option>
             ))}
           </select>
+          {domainLocked ? <LockHint /> : null}
         </div>
       </div>
 
