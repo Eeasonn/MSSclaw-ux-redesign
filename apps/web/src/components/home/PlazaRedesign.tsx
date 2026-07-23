@@ -368,6 +368,7 @@ export function PlazaRedesign({
   const [capability, setCapability] = useState<ScenarioCapabilityId | 'all'>('all');
   const [bottomTab, setBottomTab] = useState<BottomTab>('skills');
   const [insightRankMode, setInsightRankMode] = useState<RankMode>('trending');
+  const [insightScopeTab, setInsightScopeTab] = useState<'region' | 'domain'>('region');
   const [scenarioRankMode, setScenarioRankMode] = useState<RankMode>('trending');
   const [selfRankMode, setSelfRankMode] = useState<RankMode>('trending');
   const [bottomRankMode, setBottomRankMode] = useState<RankMode>('trending');
@@ -420,18 +421,29 @@ export function PlazaRedesign({
     return sortByRankMode(list, insightRankMode, engagementOf).slice(0, 3);
   }, [portalContent, insightRankMode, engagementOf, engagementById]);
 
-  const filteredInsights = useMemo(() => {
+  const regionInsights = useMemo(() => {
     const list = portalContent.filter(
       (i) =>
         i.published !== false &&
         i.type !== 'case' &&
         !isPublicInsight(i) &&
         regionMatch(i, effectiveRegionId) &&
+        capabilityMatch(i, capability),
+    );
+    return sortByRankMode(list, insightRankMode, engagementOf).slice(0, 3);
+  }, [portalContent, effectiveRegionId, capability, insightRankMode, engagementOf, engagementById]);
+
+  const domainInsights = useMemo(() => {
+    const list = portalContent.filter(
+      (i) =>
+        i.published !== false &&
+        i.type !== 'case' &&
+        !isPublicInsight(i) &&
         domainMatch(i, effectiveDeptId) &&
         capabilityMatch(i, capability),
     );
-    return sortByRankMode(list, insightRankMode, engagementOf);
-  }, [portalContent, effectiveRegionId, effectiveDeptId, capability, insightRankMode, engagementOf, engagementById]);
+    return sortByRankMode(list, insightRankMode, engagementOf).slice(0, 3);
+  }, [portalContent, effectiveDeptId, capability, insightRankMode, engagementOf, engagementById]);
 
   const filteredSelf = useMemo(() => {
     const list = portalContent.filter(
@@ -513,10 +525,17 @@ export function PlazaRedesign({
   }
 
   const focusPortalType = useNavigationIntentStore((s) => s.focusPortalType);
+  const focusPortalItem = useNavigationIntentStore((s) => s.focusPortalItem);
   const focusScenario = useNavigationIntentStore((s) => s.focusScenario);
 
   function openWorldView(type?: 'news' | 'training') {
     if (type) focusPortalType(type);
+    setAppView('world-view');
+  }
+
+  function openWorldViewWithItem(item: PortalContentItem) {
+    focusPortalItem(item.id);
+    focusPortalType(item.type === 'training' ? 'training' : 'news');
     setAppView('world-view');
   }
 
@@ -747,7 +766,7 @@ export function PlazaRedesign({
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => handleCard(contentToCard(item))}
+                  onClick={() => openWorldViewWithItem(item)}
                   className="flex flex-col gap-2 rounded-lg border p-2.5 text-left transition hover:bg-zinc-50/60"
                   style={{ borderColor: LINE }}
                 >
@@ -773,14 +792,41 @@ export function PlazaRedesign({
           <div className="h-px" style={{ backgroundColor: LINE }} />
 
           <div className="flex flex-1 flex-col gap-2">
-            <div className="mb-1 text-[10px]" style={{ color: MUTED }}>
-              区域 / 领域精选
+            <div className="mb-1 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {[
+                  { id: 'region', label: '区域' },
+                  { id: 'domain', label: '领域' },
+                ].map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setInsightScopeTab(t.id as 'region' | 'domain')}
+                    className="text-[10px] font-medium transition"
+                    style={{
+                      color: insightScopeTab === t.id ? FG : MUTED,
+                    }}
+                  >
+                    <span
+                      className="pb-0.5"
+                      style={{
+                        borderBottom: insightScopeTab === t.id ? `2px solid ${ACCENT}` : '2px solid transparent',
+                      }}
+                    >
+                      {t.label}
+                    </span>
+                  </button>
+                ))}
+                <span className="text-[10px]" style={{ color: MUTED }}>
+                  精选 · TOP 3
+                </span>
+              </div>
             </div>
-            {filteredInsights.slice(0, 3).map((item) => (
+            {(insightScopeTab === 'region' ? regionInsights : domainInsights).map((item) => (
               <button
                 key={item.id}
                 type="button"
-                onClick={() => handleCard(contentToCard(item))}
+                onClick={() => openWorldViewWithItem(item)}
                 className="flex flex-col gap-2 rounded-lg border p-2.5 text-left transition hover:bg-zinc-50/60"
                 style={{ borderColor: LINE }}
               >
@@ -828,16 +874,13 @@ export function PlazaRedesign({
                 />
                 <button
                   type="button"
-                  onClick={() => openWorldView('training')}
+                  onClick={() => setAppView('self-view')}
                   className="text-[11px] font-medium transition hover:opacity-80"
                   style={{ color: ACCENT }}
                 >
                   查看更多 →
                 </button>
               </div>
-            </div>
-            <div className="mb-1 text-[10px]" style={{ color: MUTED }}>
-              培训赋能 · TOP 3
             </div>
             {filteredSelf.slice(0, 3).map((item) => (
               <button
@@ -909,8 +952,8 @@ export function PlazaRedesign({
           <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2">
             {featuredScenes.map(({ def, bundle, publishedAt }) => {
               const b = bundle!;
-              const experts = b.agents.slice(0, 2);
-              const skillCards = b.tools.filter((c) => c.kind === 'skill').slice(0, 3);
+              const experts = b.agents.slice(0, 3);
+              const skillCards = b.tools.slice(0, 4);
               const caseCount = b.cases.filter((c) => c.kind === 'case').length;
               const trainingCount = b.cases.filter((c) => c.kind === 'training').length;
               const insightCount = b.cases.filter((c) => c.kind === 'news' || c.kind === 'insight').length;
@@ -922,91 +965,18 @@ export function PlazaRedesign({
               return (
                 <div
                   key={def.id}
-                  className="flex flex-col gap-2 rounded-lg border p-3 transition hover:shadow-sm"
+                  className="flex flex-col gap-3 rounded-lg border p-4 transition hover:shadow-sm"
                   style={{ borderColor: LINE, backgroundColor: '#fff' }}
                 >
-                  <button
-                    type="button"
-                    onClick={() => openScenarioInAiMap(def.id)}
-                    className="flex flex-1 flex-col gap-2 text-left"
-                  >
-                    <div className="flex items-center gap-2">
+                  {/* 头部：图标 + 标题 + 分类/徽章 */}
+                  <div className="flex gap-3">
+                    <div className="flex flex-col items-center gap-1.5">
                       <span
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
                         style={{ backgroundColor: '#f0eeeb', color: MUTED }}
                       >
-                        <i className={cn('fa-solid text-[13px]', def.icon)} />
+                        <i className={cn('fa-solid text-[16px]', def.icon)} />
                       </span>
-                      <span className="line-clamp-1 text-[13px] font-semibold" style={{ color: FG }}>
-                        {def.label}
-                      </span>
-                    </div>
-                    <p className="line-clamp-2 text-[11px]" style={{ color: MUTED }}>
-                      {def.desc}
-                    </p>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                      {experts.map((card) => {
-                        const targetAgent = resolveCardAgent(card, agents);
-                        const p = targetAgent ? getAgentPersona(targetAgent) : null;
-                        return (
-                          <div key={card.id} className="flex items-center gap-1">
-                            {targetAgent ? (
-                              <AgentAvatar agentId={targetAgent.id} size={18} title={p?.name ?? card.title} />
-                            ) : (
-                              <span
-                                className="flex h-[18px] w-[18px] items-center justify-center rounded-full text-[8px]"
-                                style={{ backgroundColor: '#e8e4df', color: MUTED }}
-                              >
-                                {(p?.name ?? card.title).charAt(0)}
-                              </span>
-                            )}
-                            <span className="text-[10px]" style={{ color: FG }}>
-                              {p?.name ?? card.title}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <div className="flex flex-wrap gap-1">
-                      {skillCards.map((c) => (
-                        <span
-                          key={c.id}
-                          className="rounded px-1.5 py-px text-[9px]"
-                          style={{ backgroundColor: '#f5f3f0', color: MUTED }}
-                        >
-                          {c.meta || c.title}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div
-                      className="rounded-md px-2 py-1.5 text-[10px]"
-                      style={{ backgroundColor: '#f7f6f4', color: FG }}
-                    >
-                      案例 {caseCount} · 培训 {trainingCount} · 洞察 {insightCount}
-                    </div>
-                  </button>
-
-                  <div className="mt-auto flex flex-col gap-2 pt-1">
-                    <div className="flex flex-wrap items-center gap-1">
-                      {isHot ? (
-                        <span
-                          className="rounded border px-1.5 py-px text-[9px] font-semibold"
-                          style={{ backgroundColor: '#fff', borderColor: ACCENT, color: ACCENT }}
-                        >
-                          热门
-                        </span>
-                      ) : null}
-                      {isNew ? (
-                        <span
-                          className="rounded px-1.5 py-px text-[9px] font-semibold"
-                          style={{ backgroundColor: '#e8f5e9', color: '#2e7d32' }}
-                        >
-                          New
-                        </span>
-                      ) : null}
                       {cap ? (
                         <span
                           className="rounded px-1.5 py-px text-[9px]"
@@ -1016,26 +986,124 @@ export function PlazaRedesign({
                         </span>
                       ) : null}
                     </div>
-                    <div className="flex items-center justify-between">
-                      <CardEngagementFooter contentId={def.id} publishedAt={publishedAt} />
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => openScenarioInAiMap(def.id)}
-                          className="text-[11px] font-semibold transition hover:opacity-80"
-                          style={{ color: ACCENT }}
-                        >
-                          查看详情 →
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => startScenario(b)}
-                          className="text-[11px] font-semibold transition hover:opacity-80"
-                          style={{ color: ACCENT }}
-                        >
-                          开启任务 →
-                        </button>
+                    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="line-clamp-1 text-[13px] font-semibold" style={{ color: FG }}>
+                          {def.label}
+                        </h3>
+                        <div className="flex shrink-0 flex-wrap items-center gap-1">
+                          {isHot ? (
+                            <span
+                              className="rounded border px-1.5 py-px text-[9px] font-semibold"
+                              style={{ backgroundColor: '#fff', borderColor: ACCENT, color: ACCENT }}
+                            >
+                              热门
+                            </span>
+                          ) : null}
+                          {isNew ? (
+                            <span
+                              className="rounded px-1.5 py-px text-[9px] font-semibold"
+                              style={{ backgroundColor: '#e8f5e9', color: '#2e7d32' }}
+                            >
+                              New
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
+                      <p className="line-clamp-2 text-[11px] leading-relaxed" style={{ color: MUTED }}>
+                        {def.desc}
+                      </p>
+
+                      {/* 专家头像 + 名字 */}
+                      <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                        {experts.map((card, idx) => {
+                          const targetAgent = resolveCardAgent(card, agents);
+                          const p = targetAgent ? getAgentPersona(targetAgent) : null;
+                          return (
+                            <div key={card.id} className="flex items-center gap-1">
+                              {targetAgent ? (
+                                <AgentAvatar agentId={targetAgent.id} size={18} title={p?.name ?? card.title} />
+                              ) : (
+                                <span
+                                  className="flex h-[18px] w-[18px] items-center justify-center rounded-full text-[8px]"
+                                  style={{ backgroundColor: '#e8e4df', color: MUTED }}
+                                >
+                                  {(p?.name ?? card.title).charAt(0)}
+                                </span>
+                              )}
+                              <span className="text-[10px]" style={{ color: FG }}>
+                                {p?.name ?? card.title}
+                              </span>
+                              {idx < experts.length - 1 ? (
+                                <span className="ml-1 text-[10px]" style={{ color: MUTED }}>
+                                  ·
+                                </span>
+                              ) : null}
+                            </div>
+                          );
+                        })}
+                        {b.agents.length > 3 ? (
+                          <span className="text-[10px]" style={{ color: MUTED }}>
+                            +{b.agents.length - 3}
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {/* 技能 / 工具标签 */}
+                      {skillCards.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5 pt-0.5">
+                          {skillCards.map((c) => (
+                            <span
+                              key={c.id}
+                              className="inline-flex items-center gap-1 rounded-full border px-2 py-px text-[9px]"
+                              style={{ borderColor: LINE, color: MUTED }}
+                            >
+                              <i className={cn('fa-solid text-[8px]', c.icon)} />
+                              {c.meta || c.title}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {/* 内容资产计数 */}
+                  <div
+                    className="flex flex-wrap items-center gap-3 rounded-lg px-3 py-2 text-[10px]"
+                    style={{ backgroundColor: '#f7f6f4', color: FG }}
+                  >
+                    <span className="font-medium">内容资产</span>
+                    <span>
+                      案例 <b>{caseCount}</b>
+                    </span>
+                    <span>
+                      培训 <b>{trainingCount}</b>
+                    </span>
+                    <span>
+                      洞察 <b>{insightCount}</b>
+                    </span>
+                  </div>
+
+                  {/* 底部：互动数据 + 操作 */}
+                  <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
+                    <CardEngagementFooter contentId={def.id} publishedAt={publishedAt} />
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => openScenarioInAiMap(def.id)}
+                        className="text-[11px] font-semibold transition hover:opacity-80"
+                        style={{ color: ACCENT }}
+                      >
+                        查看详情 →
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => startScenario(b)}
+                        className="rounded-md px-3 py-1.5 text-[11px] font-semibold text-white transition hover:opacity-90"
+                        style={{ backgroundColor: ACCENT }}
+                      >
+                        开启任务
+                      </button>
                     </div>
                   </div>
                 </div>

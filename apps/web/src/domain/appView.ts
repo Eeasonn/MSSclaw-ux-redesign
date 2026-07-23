@@ -19,6 +19,7 @@ export const APP_VIEWS = [
   'workspace-config',
   'portal-ops',
   'world-view',
+  'self-view',
 ] as const;
 export type AppView = (typeof APP_VIEWS)[number];
 
@@ -59,6 +60,7 @@ export const APP_VIEW_NAV: AppViewNavItem[] = [
   { id: 'prompts', label: '提示词', subtitle: '版本 · 审批 · 生命周期', icon: 'fa-file-code', section: 'platform' },
   { id: 'automation', label: '自动化', subtitle: '定时 · 告警 · 周报', icon: 'fa-bolt', section: 'ops' },
   { id: 'workflow', label: '工作流', subtitle: 'LangGraph · 专家编排', icon: 'fa-diagram-project', section: 'ops' },
+  { id: 'self-view', label: '看自己', subtitle: '培训赋能 · 个人成长', icon: 'fa-user', section: 'workspace' },
 ];
 
 export const NAV_SECTION_LABELS: Record<NavSection, string> = {

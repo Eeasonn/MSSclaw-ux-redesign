@@ -28,21 +28,20 @@ import { useNavigationIntentStore } from '@/stores/navigationIntentStore';
 import { openPortalCard } from '@/domain/portalNavigation';
 import { contentToCard } from '@/components/home/PlazaRedesign';
 
-interface WorldViewPageProps {
+interface SelfViewPageProps {
   onInvokeAgent: (agent: PrototypeAgentSeed, prompt?: string) => void;
   onInvokeSkill: (skill: PrototypeSkillSeed) => void;
 }
 
-type WorldContentType = 'all' | 'news' | 'training';
-type WorldSortMode = 'trending' | 'most_used' | 'newest';
+type SelfContentType = 'all' | 'training';
+type SelfSortMode = 'trending' | 'most_used' | 'newest';
 
-const TYPE_OPTIONS: { id: WorldContentType; label: string }[] = [
+const TYPE_OPTIONS: { id: SelfContentType; label: string }[] = [
   { id: 'all', label: '全部' },
-  { id: 'news', label: '前沿洞察' },
   { id: 'training', label: '培训赋能' },
 ];
 
-const SORT_OPTIONS: { id: WorldSortMode; label: string }[] = [
+const SORT_OPTIONS: { id: SelfSortMode; label: string }[] = [
   { id: 'trending', label: '最热' },
   { id: 'most_used', label: '最多使用' },
   { id: 'newest', label: '最新' },
@@ -53,7 +52,7 @@ const FG = '#1c1a17';
 const MUTED = '#6b6966';
 const LINE = '#d4d2cf';
 
-function useWorldViewPerspective(): {
+function useSelfViewPerspective(): {
   regionId: RegionId | 'all';
   deptId: DeptId | 'all';
   regionLocked: boolean;
@@ -153,7 +152,7 @@ function Tag({ children, className }: { children: React.ReactNode; className?: s
   );
 }
 
-export function WorldViewPage({ onInvokeAgent, onInvokeSkill }: WorldViewPageProps) {
+export function SelfViewPage({ onInvokeAgent, onInvokeSkill }: SelfViewPageProps) {
   const items = usePortalContentStore((s) => s.items);
   const showToast = useMarketplaceStore((s) => s.showToast);
   const setAppView = useAppViewStore((s) => s.setAppView);
@@ -161,38 +160,29 @@ export function WorldViewPage({ onInvokeAgent, onInvokeSkill }: WorldViewPagePro
   const engagementById = useContentEngagementStore((s) => s.byId);
 
   const { regionId: lockedRegionId, deptId: lockedDeptId, regionLocked, domainLocked } =
-    useWorldViewPerspective();
+    useSelfViewPerspective();
 
-  const consumePortalType = useNavigationIntentStore((s) => s.consumePortalType);
   const consumePortalItemId = useNavigationIntentStore((s) => s.consumePortalItemId);
 
   const [regionId, setRegionId] = useState<RegionId | 'all'>(lockedRegionId);
   const [deptId, setDeptId] = useState<DeptId | 'all'>(lockedDeptId);
-  const [typeFilter, setTypeFilter] = useState<WorldContentType>('all');
-  const [sortMode, setSortMode] = useState<WorldSortMode>('trending');
+  const [typeFilter, setTypeFilter] = useState<SelfContentType>('all');
+  const [sortMode, setSortMode] = useState<SelfSortMode>('trending');
   const [highlightItemId, setHighlightItemId] = useState<string | null>(null);
 
   useEffect(() => {
-    const t = consumePortalType();
-    if (t === 'news' || t === 'training') {
-      setTypeFilter(t);
-    }
     const id = consumePortalItemId();
     if (id) {
       setHighlightItemId(id);
     }
-  }, [consumePortalType, consumePortalItemId]);
+  }, [consumePortalItemId]);
 
   useEffect(() => {
     if (highlightItemId) {
-      const item = items.find((i) => i.id === highlightItemId);
-      if (item) {
-        setTypeFilter(item.type === 'training' ? 'training' : 'news');
-      }
       const t = setTimeout(() => setHighlightItemId(null), 3000);
       return () => clearTimeout(t);
     }
-  }, [highlightItemId, items]);
+  }, [highlightItemId]);
 
   const effectiveRegionId = regionLocked ? lockedRegionId : regionId;
   const effectiveDeptId = domainLocked ? lockedDeptId : deptId;
@@ -201,7 +191,7 @@ export function WorldViewPage({ onInvokeAgent, onInvokeSkill }: WorldViewPagePro
     return items.filter(
       (i) =>
         i.published !== false &&
-        i.type !== 'case' &&
+        i.type === 'training' &&
         (typeFilter === 'all' || i.type === typeFilter) &&
         regionMatch(i, effectiveRegionId) &&
         domainMatch(i, effectiveDeptId),
@@ -213,7 +203,7 @@ export function WorldViewPage({ onInvokeAgent, onInvokeSkill }: WorldViewPagePro
   }, [filteredItems, sortMode, engagementOf, engagementById]);
 
   useEffect(() => {
-    ensureEngagementSeeds(items.map((i) => i.id));
+    ensureEngagementSeeds(items.filter((i) => i.type === 'training').map((i) => i.id));
   }, [items]);
 
   function handleItem(item: PortalContentItem) {
@@ -238,7 +228,7 @@ export function WorldViewPage({ onInvokeAgent, onInvokeSkill }: WorldViewPagePro
             ← 返回广场
           </button>
           <h1 className="text-[16px] font-semibold" style={{ color: FG }}>
-            看世界
+            看自己
           </h1>
         </div>
 
@@ -304,12 +294,6 @@ export function WorldViewPage({ onInvokeAgent, onInvokeSkill }: WorldViewPagePro
           {sortedItems.map((item) => {
             const e = engagementOf(item.id);
             const h = Math.round(heatScore({ ...e, uses: e.uses }));
-            const typeLabel =
-              item.type === 'case'
-                ? '场景案例'
-                : item.type === 'training'
-                  ? '培训赋能'
-                  : '前沿洞察';
             const highlighted = highlightItemId === item.id;
             return (
               <button
@@ -327,7 +311,7 @@ export function WorldViewPage({ onInvokeAgent, onInvokeSkill }: WorldViewPagePro
                     className="rounded border px-1.5 py-px text-[10px] font-semibold"
                     style={{ backgroundColor: '#fff', borderColor: ACCENT, color: ACCENT }}
                   >
-                    {typeLabel}
+                    培训赋能
                   </span>
                   {item.ownerRegionId ? (
                     <Tag className="border-[#4a7c59] text-[#4a7c59]">
@@ -366,7 +350,7 @@ export function WorldViewPage({ onInvokeAgent, onInvokeSkill }: WorldViewPagePro
           })}
           {!sortedItems.length && (
             <p className="py-8 text-center text-[12px]" style={{ color: MUTED }}>
-              该筛选下暂无内容
+              该筛选下暂无培训内容
             </p>
           )}
         </div>

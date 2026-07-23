@@ -102,6 +102,13 @@ export const NAV_PRESENTATION_META: NavPresentationMeta[] = [
     section: 'workspace',
   },
   {
+    id: 'self-view',
+    label: '看自己',
+    subtitle: '培训赋能 · 个人成长',
+    icon: 'fa-user',
+    section: 'workspace',
+  },
+  {
     id: 'admin',
     label: '组织权限',
     subtitle: '组织 · 部门 · 角色 · 成员治理',
@@ -188,6 +195,7 @@ function mvpForRole(role: PlatformRole): Record<NavSlotId, boolean> {
         presentation: true,
         'workspace-config': true,
         'world-view': true,
+        'self-view': true,
       },
       role,
     );
@@ -205,6 +213,7 @@ function mvpForRole(role: PlatformRole): Record<NavSlotId, boolean> {
         agents: true,
         skills: true,
         'world-view': true,
+        'self-view': true,
       },
       role,
     );
@@ -223,6 +232,7 @@ function mvpForRole(role: PlatformRole): Record<NavSlotId, boolean> {
         agents: true,
         skills: true,
         'world-view': true,
+        'self-view': true,
       },
       role,
     );
@@ -240,6 +250,7 @@ function mvpForRole(role: PlatformRole): Record<NavSlotId, boolean> {
       agents: true,
       skills: true,
       'world-view': true,
+      'self-view': true,
     },
     role,
   );
@@ -343,6 +354,7 @@ export const NAV_FALLBACK_ORDER: AppView[] = [
   PRESENTATION_CONFIG_VIEW,
   WORKSPACE_CONFIG_VIEW,
   'portal-ops',
+  'self-view',
 ];
 
 export function getNavMeta(slot: NavSlotId): NavPresentationMeta | undefined {
