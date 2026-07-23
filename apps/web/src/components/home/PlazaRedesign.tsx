@@ -368,7 +368,7 @@ export function PlazaRedesign({
   const [capability, setCapability] = useState<ScenarioCapabilityId | 'all'>('all');
   const [bottomTab, setBottomTab] = useState<BottomTab>('skills');
   const [insightRankMode, setInsightRankMode] = useState<RankMode>('trending');
-  const [insightScopeTab, setInsightScopeTab] = useState<'region' | 'domain'>('region');
+  const [insightScopeTab, setInsightScopeTab] = useState<'public' | 'region' | 'domain'>('public');
   const [scenarioRankMode, setScenarioRankMode] = useState<RankMode>('trending');
   const [selfRankMode, setSelfRankMode] = useState<RankMode>('trending');
   const [bottomRankMode, setBottomRankMode] = useState<RankMode>('trending');
@@ -737,7 +737,7 @@ export function PlazaRedesign({
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: FG }}>
-              洞察
+              看世界
             </span>
             <div className="flex items-center gap-2">
               <MiniSelect
@@ -757,51 +757,18 @@ export function PlazaRedesign({
             </div>
           </div>
 
-          <div>
-            <div className="mb-2 text-[10px]" style={{ color: MUTED }}>
-              公共洞察 · TOP 3
-            </div>
-            <div className="flex flex-col gap-2">
-              {publicInsights.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => openWorldViewWithItem(item)}
-                  className="flex flex-col gap-2 rounded-lg border p-2.5 text-left transition hover:bg-zinc-50/60"
-                  style={{ borderColor: LINE }}
-                >
-                  <span className="text-[12px] font-semibold" style={{ color: FG }}>
-                    {item.title}
-                  </span>
-                  <span className="line-clamp-2 text-[10px]" style={{ color: MUTED }}>
-                    {item.desc}
-                  </span>
-                  <div className="flex flex-wrap gap-1 pt-0.5">
-                    {(item.scenarioTags ?? []).slice(0, 2).map((t) => (
-                      <Tag key={t} className="border-[#d4d2cf] text-[#6b6966]">
-                        {t}
-                      </Tag>
-                    ))}
-                  </div>
-                  <CardEngagementFooter contentId={item.id} publishedAt={item.publishedAt} />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="h-px" style={{ backgroundColor: LINE }} />
-
           <div className="flex flex-1 flex-col gap-2">
             <div className="mb-1 flex items-center justify-between">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 {[
+                  { id: 'public', label: '公共' },
                   { id: 'region', label: '区域' },
                   { id: 'domain', label: '领域' },
                 ].map((t) => (
                   <button
                     key={t.id}
                     type="button"
-                    onClick={() => setInsightScopeTab(t.id as 'region' | 'domain')}
+                    onClick={() => setInsightScopeTab(t.id as 'public' | 'region' | 'domain')}
                     className="text-[10px] font-medium transition"
                     style={{
                       color: insightScopeTab === t.id ? FG : MUTED,
@@ -817,12 +784,18 @@ export function PlazaRedesign({
                     </span>
                   </button>
                 ))}
-                <span className="text-[10px]" style={{ color: MUTED }}>
-                  精选 · TOP 3
-                </span>
               </div>
+              <span className="text-[10px]" style={{ color: MUTED }}>
+                TOP 3
+              </span>
             </div>
-            {(insightScopeTab === 'region' ? regionInsights : domainInsights).map((item) => (
+            {(
+              insightScopeTab === 'public'
+                ? publicInsights
+                : insightScopeTab === 'region'
+                  ? regionInsights
+                  : domainInsights
+            ).map((item) => (
               <button
                 key={item.id}
                 type="button"
@@ -834,7 +807,9 @@ export function PlazaRedesign({
                   {item.title}
                 </span>
                 <div className="flex flex-wrap gap-1">
-                  {item.ownerRegionId ? (
+                  {insightScopeTab === 'public' ? (
+                    <Tag className="border-[#6b6966] text-[#6b6966]">公共</Tag>
+                  ) : item.ownerRegionId ? (
                     <Tag className="border-[#4a7c59] text-[#4a7c59]">
                       {getRegionLabel(item.ownerRegionId)}
                     </Tag>
@@ -848,14 +823,6 @@ export function PlazaRedesign({
                 <CardEngagementFooter contentId={item.id} publishedAt={item.publishedAt} />
               </button>
             ))}
-            <button
-              type="button"
-              onClick={() => openWorldView('news')}
-              className="mt-auto self-start text-[11px] font-medium transition hover:opacity-80"
-              style={{ color: ACCENT }}
-            >
-              查看更多洞察 →
-            </button>
           </div>
 
           <div className="h-px" style={{ backgroundColor: LINE }} />
@@ -949,11 +916,14 @@ export function PlazaRedesign({
             </div>
           </div>
 
-          <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
             {featuredScenes.map(({ def, bundle, publishedAt }) => {
               const b = bundle!;
               const experts = b.agents.slice(0, 3);
               const skillCards = b.tools.slice(0, 4);
+              const topCases = [...b.cases]
+                .sort((a, b) => heatScore(engagementOf(b.id)) - heatScore(engagementOf(a.id)))
+                .slice(0, 3);
               const caseCount = b.cases.filter((c) => c.kind === 'case').length;
               const trainingCount = b.cases.filter((c) => c.kind === 'training').length;
               const insightCount = b.cases.filter((c) => c.kind === 'news' || c.kind === 'insight').length;
@@ -968,29 +938,29 @@ export function PlazaRedesign({
                   className="flex flex-col gap-3 rounded-lg border p-4 transition hover:shadow-sm"
                   style={{ borderColor: LINE, backgroundColor: '#fff' }}
                 >
-                  {/* 头部：图标 + 标题 + 分类/徽章 */}
-                  <div className="flex gap-3">
-                    <div className="flex flex-col items-center gap-1.5">
-                      <span
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-                        style={{ backgroundColor: '#f0eeeb', color: MUTED }}
-                      >
-                        <i className={cn('fa-solid text-[16px]', def.icon)} />
-                      </span>
-                      {cap ? (
-                        <span
-                          className="rounded px-1.5 py-px text-[9px]"
-                          style={{ backgroundColor: '#f0eeeb', color: MUTED }}
-                        >
-                          {cap.label}
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  {/* 顶部标题行：图标 + 标题 + 分类标签 + 徽章 */}
+                  <div className="flex items-start gap-3">
+                    <span
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+                      style={{ backgroundColor: '#f0eeeb', color: MUTED }}
+                    >
+                      <i className={cn('fa-solid text-[18px]', def.icon)} />
+                    </span>
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
-                        <h3 className="line-clamp-1 text-[13px] font-semibold" style={{ color: FG }}>
-                          {def.label}
-                        </h3>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="line-clamp-1 text-[13px] font-semibold" style={{ color: FG }}>
+                            {def.label}
+                          </h3>
+                          {cap ? (
+                            <span
+                              className="rounded border px-1.5 py-px text-[9px]"
+                              style={{ backgroundColor: '#fff', borderColor: LINE, color: MUTED }}
+                            >
+                              {cap.label}
+                            </span>
+                          ) : null}
+                        </div>
                         <div className="flex shrink-0 flex-wrap items-center gap-1">
                           {isHot ? (
                             <span
@@ -1010,62 +980,108 @@ export function PlazaRedesign({
                           ) : null}
                         </div>
                       </div>
-                      <p className="line-clamp-2 text-[11px] leading-relaxed" style={{ color: MUTED }}>
+                      <p className="line-clamp-3 text-[11px] leading-relaxed" style={{ color: MUTED }}>
                         {def.desc}
                       </p>
-
-                      {/* 专家头像 + 名字 */}
-                      <div className="flex flex-wrap items-center gap-2 pt-0.5">
-                        {experts.map((card, idx) => {
-                          const targetAgent = resolveCardAgent(card, agents);
-                          const p = targetAgent ? getAgentPersona(targetAgent) : null;
-                          return (
-                            <div key={card.id} className="flex items-center gap-1">
-                              {targetAgent ? (
-                                <AgentAvatar agentId={targetAgent.id} size={18} title={p?.name ?? card.title} />
-                              ) : (
-                                <span
-                                  className="flex h-[18px] w-[18px] items-center justify-center rounded-full text-[8px]"
-                                  style={{ backgroundColor: '#e8e4df', color: MUTED }}
-                                >
-                                  {(p?.name ?? card.title).charAt(0)}
-                                </span>
-                              )}
-                              <span className="text-[10px]" style={{ color: FG }}>
-                                {p?.name ?? card.title}
-                              </span>
-                              {idx < experts.length - 1 ? (
-                                <span className="ml-1 text-[10px]" style={{ color: MUTED }}>
-                                  ·
-                                </span>
-                              ) : null}
-                            </div>
-                          );
-                        })}
-                        {b.agents.length > 3 ? (
-                          <span className="text-[10px]" style={{ color: MUTED }}>
-                            +{b.agents.length - 3}
-                          </span>
-                        ) : null}
-                      </div>
-
-                      {/* 技能 / 工具标签 */}
-                      {skillCards.length > 0 ? (
-                        <div className="flex flex-wrap gap-1.5 pt-0.5">
-                          {skillCards.map((c) => (
-                            <span
-                              key={c.id}
-                              className="inline-flex items-center gap-1 rounded-full border px-2 py-px text-[9px]"
-                              style={{ borderColor: LINE, color: MUTED }}
-                            >
-                              <i className={cn('fa-solid text-[8px]', c.icon)} />
-                              {c.meta || c.title}
-                            </span>
-                          ))}
-                        </div>
-                      ) : null}
                     </div>
                   </div>
+
+                  {/* 精选内容列表 */}
+                  {topCases.length > 0 ? (
+                    <div className="flex flex-col gap-2 rounded-lg border p-2.5" style={{ borderColor: '#eeebe7' }}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-semibold" style={{ color: FG }}>
+                          精选内容
+                        </span>
+                        <span className="text-[9px]" style={{ color: MUTED }}>
+                          按热度
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        {topCases.map((card) => {
+                          const h = Math.round(heatScore(engagementOf(card.id)));
+                          return (
+                            <button
+                              key={card.id}
+                              type="button"
+                              onClick={() => handleCard(card)}
+                              className="flex flex-col gap-1 rounded-md bg-[#faf9f7] px-2 py-1.5 text-left transition hover:bg-[#f4f2ef]"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="shrink-0 rounded px-1 py-px text-[9px]"
+                                  style={{ backgroundColor: '#f0eeeb', color: MUTED }}
+                                >
+                                  {card.kindLabel}
+                                </span>
+                                <span className="line-clamp-1 flex-1 text-[11px] font-medium" style={{ color: FG }}>
+                                  {card.title}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-3 text-[9px]" style={{ color: MUTED }}>
+                                {card.publishedAt ? <span>{card.publishedAt}</span> : null}
+                                <span title="热度">
+                                  <i className="fa-solid fa-fire mr-0.5" style={{ color: ACCENT }} />
+                                  {h}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* 参与专家 */}
+                  {experts.length > 0 ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[10px]" style={{ color: MUTED }}>
+                        参与专家
+                      </span>
+                      {experts.map((card) => {
+                        const targetAgent = resolveCardAgent(card, agents);
+                        const p = targetAgent ? getAgentPersona(targetAgent) : null;
+                        return (
+                          <div key={card.id} className="flex items-center gap-1">
+                            {targetAgent ? (
+                              <AgentAvatar agentId={targetAgent.id} size={20} title={p?.name ?? card.title} />
+                            ) : (
+                              <span
+                                className="flex h-5 w-5 items-center justify-center rounded-full text-[8px]"
+                                style={{ backgroundColor: '#e8e4df', color: MUTED }}
+                              >
+                                {(p?.name ?? card.title).charAt(0)}
+                              </span>
+                            )}
+                            <span className="text-[10px]" style={{ color: FG }}>
+                              {p?.name ?? card.title}
+                            </span>
+                          </div>
+                        );
+                      })}
+                      {b.agents.length > 3 ? (
+                        <span className="text-[10px]" style={{ color: MUTED }}>
+                          +{b.agents.length - 3}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {/* 关键技能 / 工具标签 */}
+                  {skillCards.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {skillCards.map((c) => (
+                        <span
+                          key={c.id}
+                          className="inline-flex items-center gap-1 rounded-full border px-2 py-px text-[9px]"
+                          style={{ borderColor: LINE, color: MUTED }}
+                        >
+                          <i className={cn('fa-solid text-[8px]', c.icon)} />
+                          {c.meta || c.title}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
 
                   {/* 内容资产计数 */}
                   <div
@@ -1085,7 +1101,7 @@ export function PlazaRedesign({
                   </div>
 
                   {/* 底部：互动数据 + 操作 */}
-                  <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                     <CardEngagementFooter contentId={def.id} publishedAt={publishedAt} />
                     <div className="flex items-center gap-3">
                       <button

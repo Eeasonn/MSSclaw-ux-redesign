@@ -230,6 +230,19 @@ export function AppShellSidebar() {
               </button>
             )}
 
+            {isViewEnabled('self-view') && (
+              <button
+                type="button"
+                onClick={() => setAppView('self-view')}
+                onMouseEnter={() => ROUTE_PREFETCH['self-view']?.()}
+                className={cn('wb-nav-item', appView === 'self-view' && 'active')}
+                title={sidebarCollapsed ? '看自己' : '看自己 · 培训赋能'}
+              >
+                <i className="fa-solid fa-user w-5 text-center text-[15px]" />
+                <span className="nav-label">看自己</span>
+              </button>
+            )}
+
             {isViewEnabled('ai-map') && (
               <button
                 type="button"
