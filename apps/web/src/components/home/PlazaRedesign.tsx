@@ -62,7 +62,7 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { useAppViewStore } from '@/stores/appViewStore';
 import { useNavigationIntentStore } from '@/stores/navigationIntentStore';
 import { ScenarioDetailModal } from '@/components/content/ScenarioDetailModal';
-import { getPortalItemById, outcomeFromNarrativeCard } from '@/domain/portalCase';
+import { outcomeFromNarrativeCard } from '@/domain/portalCase';
 import type { ScenarioDemoPlan } from '@/domain/scenarioPipeline';
 
 interface PlazaRedesignProps {
@@ -476,12 +476,12 @@ export function PlazaRedesign({
     return sortByRankMode(withBundle, scenarioRankMode, engagementOf).slice(0, 4);
   }, [bundleById, capability, scenarioRankMode, engagementOf, engagementById]);
 
-  const hotScenarioIds = useMemo(() => {
+  const goldScenarioIds = useMemo(() => {
     return [...FEATURED_SCENARIOS]
       .map((s) => ({ id: s.id, bundle: bundleById.get(s.id) }))
       .filter((x): x is { id: string; bundle: ScenarioBundle } => Boolean(x.bundle))
       .sort((a, b) => heatScore(engagementOf(b.id)) - heatScore(engagementOf(a.id)))
-      .slice(0, 3)
+      .slice(0, 2)
       .map((x) => x.id);
   }, [bundleById, engagementOf, engagementById]);
 
@@ -928,18 +928,13 @@ export function PlazaRedesign({
           <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
             {featuredScenes.map(({ def, bundle, publishedAt }) => {
               const b = bundle!;
-              const experts = b.agents.slice(0, 3);
               const skillCards = b.tools.slice(0, 4);
               const topCase = [...b.cases].sort(
                 (a, bb) => heatScore(engagementOf(bb.id)) - heatScore(engagementOf(a.id)),
               )[0];
               const narrative = topCase ? outcomeFromNarrativeCard(topCase) : null;
-              const narrativeItem = topCase?.action.type === 'case' ? getPortalItemById(topCase.action.caseId) : null;
               const primaryCaseId = topCase?.action.type === 'case' ? topCase.action.caseId : null;
-              const caseCount = b.cases.filter((c) => c.kind === 'case').length;
-              const trainingCount = b.cases.filter((c) => c.kind === 'training').length;
-              const insightCount = b.cases.filter((c) => c.kind === 'news' || c.kind === 'insight').length;
-              const isHot = hotScenarioIds.includes(def.id);
+              const isGold = goldScenarioIds.includes(def.id);
               const isNew = isNewScenario(def.id);
               const cap = SCENARIO_CAPABILITY_CATEGORIES.find((c) =>
                 SCENARIO_CAPABILITY_MAP[def.id as keyof typeof SCENARIO_CAPABILITY_MAP]?.includes(c.id),
@@ -977,12 +972,12 @@ export function PlazaRedesign({
                           ) : null}
                         </div>
                         <div className="flex shrink-0 flex-wrap items-center gap-1">
-                          {isHot ? (
+                          {isGold ? (
                             <span
                               className="rounded border px-1.5 py-px text-[9px] font-semibold"
-                              style={{ backgroundColor: '#fff', borderColor: ACCENT, color: ACCENT }}
+                              style={{ backgroundColor: '#fff', borderColor: '#e6a23c', color: '#b45309' }}
                             >
-                              热门
+                              金案例
                             </span>
                           ) : null}
                           {isNew ? (
@@ -999,24 +994,6 @@ export function PlazaRedesign({
                         {narrative?.desc ?? def.desc}
                       </p>
                     </div>
-                  </div>
-
-                  {/* 类型标签 + 金案例标 */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      className="rounded border px-2 py-px text-[10px]"
-                      style={{ backgroundColor: '#fff', borderColor: LINE, color: MUTED }}
-                    >
-                      {narrative?.typeLabel ?? '场景案例'}
-                    </span>
-                    {narrativeItem?.isGold ? (
-                      <span
-                        className="rounded border px-2 py-px text-[10px]"
-                        style={{ backgroundColor: '#fff', borderColor: '#e6a23c', color: '#b45309' }}
-                      >
-                        金案例
-                      </span>
-                    ) : null}
                   </div>
 
                   {/* 专家链路步骤 */}
@@ -1070,41 +1047,6 @@ export function PlazaRedesign({
                     </div>
                   ) : null}
 
-                  {/* 参与专家 */}
-                  {experts.length > 0 ? (
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[10px]" style={{ color: MUTED }}>
-                        参与专家
-                      </span>
-                      {experts.map((card) => {
-                        const targetAgent = resolveCardAgent(card, agents);
-                        const p = targetAgent ? getAgentPersona(targetAgent) : null;
-                        return (
-                          <div key={card.id} className="flex items-center gap-1">
-                            {targetAgent ? (
-                              <AgentAvatar agentId={targetAgent.id} size={20} title={p?.name ?? card.title} />
-                            ) : (
-                              <span
-                                className="flex h-5 w-5 items-center justify-center rounded-full text-[8px]"
-                                style={{ backgroundColor: '#e8e4df', color: MUTED }}
-                              >
-                                {(p?.name ?? card.title).charAt(0)}
-                              </span>
-                            )}
-                            <span className="text-[10px]" style={{ color: FG }}>
-                              {p?.name ?? card.title}
-                            </span>
-                          </div>
-                        );
-                      })}
-                      {b.agents.length > 3 ? (
-                        <span className="text-[10px]" style={{ color: MUTED }}>
-                          +{b.agents.length - 3}
-                        </span>
-                      ) : null}
-                    </div>
-                  ) : null}
-
                   {/* 关键技能 / 工具标签 */}
                   {skillCards.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5">
@@ -1120,23 +1062,6 @@ export function PlazaRedesign({
                       ))}
                     </div>
                   ) : null}
-
-                  {/* 内容资产计数 */}
-                  <div
-                    className="flex flex-wrap items-center gap-3 rounded-lg px-3 py-2 text-[10px]"
-                    style={{ backgroundColor: '#f7f6f4', color: FG }}
-                  >
-                    <span className="font-medium">内容资产</span>
-                    <span>
-                      案例 <b>{caseCount}</b>
-                    </span>
-                    <span>
-                      培训 <b>{trainingCount}</b>
-                    </span>
-                    <span>
-                      洞察 <b>{insightCount}</b>
-                    </span>
-                  </div>
 
                   {/* 底部：互动数据 + 操作 */}
                   <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
