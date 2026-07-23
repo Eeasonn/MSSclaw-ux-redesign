@@ -1,20 +1,6 @@
 import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 
-const ACCENTS = [
-  'from-rose-400 via-pink-500 to-fuchsia-500',
-  'from-sky-400 via-cyan-500 to-teal-500',
-  'from-amber-400 via-orange-500 to-red-500',
-  'from-violet-400 via-indigo-500 to-blue-600',
-];
-
-const SHAPES = [
-  'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.35) 0%, transparent 40%)',
-  'radial-gradient(circle at 70% 70%, rgba(255,255,255,0.35) 0%, transparent 40%)',
-  'linear-gradient(135deg, rgba(255,255,255,0.25) 0%, transparent 50%)',
-  'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.3) 0%, transparent 60%)',
-];
-
 type SortMode = 'latest' | 'hottest' | 'liked';
 
 interface VibeWork {
@@ -27,9 +13,8 @@ interface VibeWork {
   likes: number;
   heat: number;
   file: string;
-  icon: string;
-  accent: string;
-  shape: string;
+  thumbnail: string;
+  tags: string[];
 }
 
 const WORKS: VibeWork[] = [
@@ -43,9 +28,8 @@ const WORKS: VibeWork[] = [
     likes: 624,
     heat: 9820,
     file: '/vibe/Open-Design.html',
-    icon: 'fa-wand-magic-sparkles',
-    accent: ACCENTS[3],
-    shape: SHAPES[3],
+    thumbnail: '/vibe/vibe-thumbs/open-design-thumb.png',
+    tags: ['Agent', '设计系统', '品牌落地'],
   },
   {
     id: 'vibe-2',
@@ -57,9 +41,8 @@ const WORKS: VibeWork[] = [
     likes: 412,
     heat: 6890,
     file: '/vibe/artifact.html',
-    icon: 'fa-rocket',
-    accent: ACCENTS[0],
-    shape: SHAPES[0],
+    thumbnail: '/vibe/vibe-thumbs/artifact-thumb.png',
+    tags: ['增长运营', '项目管理', '数据看板'],
   },
   {
     id: 'vibe-3',
@@ -71,9 +54,8 @@ const WORKS: VibeWork[] = [
     likes: 286,
     heat: 4120,
     file: '/vibe/artifact1.html',
-    icon: 'fa-chart-simple',
-    accent: ACCENTS[1],
-    shape: SHAPES[1],
+    thumbnail: '/vibe/vibe-thumbs/artifact1-thumb.png',
+    tags: ['社媒运营', '内容中台', '可视化'],
   },
   {
     id: 'vibe-4',
@@ -85,9 +67,8 @@ const WORKS: VibeWork[] = [
     likes: 198,
     heat: 3250,
     file: '/vibe/pre-seed.html',
-    icon: 'fa-seedling',
-    accent: ACCENTS[2],
-    shape: SHAPES[2],
+    thumbnail: '/vibe/vibe-thumbs/pre-seed-thumb.png',
+    tags: ['创业融资', 'Pitch', 'AI 写作'],
   },
 ];
 
@@ -99,23 +80,14 @@ function formatNumber(n: number): string {
 
 function WorkCover({ work }: { work: VibeWork }) {
   return (
-    <div
-      className={cn(
-        'relative h-44 w-full overflow-hidden rounded-2xl bg-gradient-to-br',
-        work.accent,
-      )}
-    >
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{ background: work.shape }}
+    <div className="relative h-44 w-full overflow-hidden rounded-2xl bg-zinc-100">
+      <img
+        src={work.thumbnail}
+        alt={work.title}
+        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+        loading="lazy"
       />
-      <div className="pointer-events-none absolute -left-6 -top-6 h-32 w-32 rounded-full bg-white/20 blur-2xl" />
-      <div className="pointer-events-none absolute -bottom-8 -right-8 h-40 w-40 rounded-full bg-white/15 blur-3xl" />
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/30 bg-white/20 text-3xl text-white/90 shadow-lg backdrop-blur-sm">
-          <i className={cn('fa-solid', work.icon)} />
-        </span>
-      </div>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
       <div className="absolute right-3 top-3 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-zinc-700 shadow-sm">
         <i className="fa-solid fa-sparkles mr-1 text-amber-500" />
         Vibe
@@ -197,6 +169,16 @@ export function VibeSpacePage() {
                     <span className="text-[12px] text-zinc-600">{work.author}</span>
                   </div>
                   <span className="text-[11px] text-zinc-400">{work.publishedAt}</span>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {work.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border border-zinc-100 bg-zinc-50 px-2 py-0.5 text-[10px] text-zinc-500"
+                    >
+                      {tag}
+                    </span>
+                  ))}
                 </div>
                 <div className="mt-3 flex items-center gap-4 text-[11px] text-zinc-400">
                   <span className="inline-flex items-center gap-1">

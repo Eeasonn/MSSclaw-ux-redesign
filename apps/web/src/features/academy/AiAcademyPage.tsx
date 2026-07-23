@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { CenterModal } from '@/components/center/CenterShell';
 import { useAppViewStore } from '@/stores/appViewStore';
-import { COURSES, AI_HOT_SPOTS, type Course, type CourseInstructor } from './academyMock';
+import { COURSES, AI_HOT_SPOTS, AI_HOT_TOP5, type Course, type CourseInstructor } from './academyMock';
 
 function formatHeat(n: number): string {
   if (n >= 10000) return `${(n / 10000).toFixed(1)}万`;
@@ -231,6 +231,35 @@ export function CourseDetailModal({
   );
 }
 
+function HotTop5Item({ item }: { item: (typeof AI_HOT_TOP5)[number] }) {
+  const rankColors: Record<number, string> = {
+    1: 'text-amber-600',
+    2: 'text-zinc-500',
+    3: 'text-orange-700',
+  };
+  return (
+    <div className="flex items-start gap-3 py-2.5">
+      <span
+        className={cn(
+          'w-6 shrink-0 text-[15px] font-bold leading-none',
+          rankColors[item.rank] ?? 'text-zinc-400',
+        )}
+      >
+        {item.rank}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-3">
+          <h4 className="text-[13px] font-semibold leading-snug text-zinc-800">{item.title}</h4>
+          <span className="shrink-0 whitespace-nowrap text-[11px] text-zinc-400">
+            {item.sourceCount} 个信源同时报道
+          </span>
+        </div>
+        <p className="mt-0.5 line-clamp-1 text-[11px] text-zinc-500">{item.summary}</p>
+      </div>
+    </div>
+  );
+}
+
 function HotSpotItem({ item, isLast }: { item: (typeof AI_HOT_SPOTS)[number]; isLast: boolean }) {
   return (
     <div className="relative flex gap-4 pb-6">
@@ -340,6 +369,16 @@ export function AiAcademyPage() {
                 <CourseCard key={c.id} course={c} size="sm" onClick={() => setDetail(c)} />
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* 当前热点：Top 5 速览 */}
+        <section className="mb-6 rounded-2xl border border-zinc-100 bg-white p-4 shadow-sm">
+          <h3 className="mb-1 text-[16px] font-semibold text-zinc-900">当前热点</h3>
+          <div className="divide-y divide-zinc-100">
+            {AI_HOT_TOP5.map((item) => (
+              <HotTop5Item key={item.rank} item={item} />
+            ))}
           </div>
         </section>
 

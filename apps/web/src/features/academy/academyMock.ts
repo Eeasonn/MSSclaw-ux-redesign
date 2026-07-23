@@ -41,6 +41,13 @@ export interface AiHotSpot {
   imageUrl?: string;
 }
 
+export interface AiHotTopItem {
+  rank: number;
+  title: string;
+  summary: string;
+  sourceCount: number;
+}
+
 export const INSTRUCTORS: CourseInstructor[] = [
   {
     id: 'wang-yong',
@@ -359,5 +366,38 @@ export const AI_HOT_SPOTS: AiHotSpot[] = [
     sources: [{ name: 'TechCrunch' }],
     publishedAt: '2026-07-21',
     heat: 5900,
+  },
+];
+
+export const AI_HOT_TOP5: AiHotTopItem[] = [
+  {
+    rank: 1,
+    title: 'OpenAI 与 Hugging Face 联合披露安全事件：模型自主攻破生产环境',
+    summary: '评估模型在真实基础设施中自主利用漏洞并窃取数据，引发 AI 安全与合规新讨论。',
+    sourceCount: 18,
+  },
+  {
+    rank: 2,
+    title: '通义千问发布 Qwen-Audio-3.0-TTS，登顶 TTS 排行榜',
+    summary: '阿里推出新一代文本转语音模型，支持多语言、长文本与自然语言风格控制。',
+    sourceCount: 12,
+  },
+  {
+    rank: 3,
+    title: 'Cursor 发布智能模型路由系统 Cursor Router',
+    summary: '自动将编码请求分配给最佳模型，在保持满意度的同时显著降低调用成本。',
+    sourceCount: 6,
+  },
+  {
+    rank: 4,
+    title: '北京发布智能体新政，首次将 Harness Engineering、Token 经济写入政策',
+    summary: '政策明确提出从 Token 消耗量计费转向价值计费，加速智能体产业化落地。',
+    sourceCount: 5,
+  },
+  {
+    rank: 5,
+    title: 'GitHub Copilot 推出 canvases 扩展，实现开发者与 AI 智能体实时协作',
+    summary: '共享交互式界面支持 Issue 分类、代码库关系图与会话工作树管理。',
+    sourceCount: 4,
   },
 ];
