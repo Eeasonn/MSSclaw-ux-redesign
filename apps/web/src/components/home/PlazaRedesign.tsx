@@ -61,6 +61,8 @@ import { usePortalContentStore } from '@/stores/portalContentStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useAppViewStore } from '@/stores/appViewStore';
 import { useNavigationIntentStore } from '@/stores/navigationIntentStore';
+import { ScenarioDetailModal } from '@/components/content/ScenarioDetailModal';
+import { getPortalItemById, outcomeFromNarrativeCard } from '@/domain/portalCase';
 import type { ScenarioDemoPlan } from '@/domain/scenarioPipeline';
 
 interface PlazaRedesignProps {
@@ -374,6 +376,7 @@ export function PlazaRedesign({
   const [bottomRankMode, setBottomRankMode] = useState<RankMode>('trending');
   const [activeToolCategory, setActiveToolCategory] = useState<AiToolNavCategoryId>('chat');
   const [howToTool, setHowToTool] = useState<PrototypeToolSeed | null>(null);
+  const [selectedScenarioBundle, setSelectedScenarioBundle] = useState<ReturnType<typeof buildScenarioBundles>[number] | null>(null);
 
   const effectiveRegionId = regionLocked ? lockedRegionId : regionId;
   const effectiveDeptId = domainLocked ? lockedDeptId : deptId;
@@ -527,6 +530,7 @@ export function PlazaRedesign({
   const focusPortalType = useNavigationIntentStore((s) => s.focusPortalType);
   const focusPortalItem = useNavigationIntentStore((s) => s.focusPortalItem);
   const focusScenario = useNavigationIntentStore((s) => s.focusScenario);
+  const focusCase = useNavigationIntentStore((s) => s.focusCase);
 
   function openWorldView(type?: 'news' | 'training') {
     if (type) focusPortalType(type);
@@ -539,9 +543,14 @@ export function PlazaRedesign({
     setAppView('world-view');
   }
 
-  function openScenarioInAiMap(scenarioId: string) {
+  function openScenarioCaseInAiMap(scenarioId: string, caseId?: string | null) {
+    if (caseId) focusCase(caseId);
     focusScenario(scenarioId);
     setAppView('ai-map');
+  }
+
+  function openScenarioDetail(bundle: ScenarioBundle) {
+    setSelectedScenarioBundle(bundle);
   }
 
   function handleCard(card: PortalMapCard) {
@@ -729,7 +738,7 @@ export function PlazaRedesign({
       </div>
 
       {/* 上区主体 */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-stretch">
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
         {/* 左侧 1/3：洞察 + 看自己 */}
         <div
           className="flex flex-col gap-3 rounded-xl border p-4 lg:col-span-1"
@@ -921,9 +930,12 @@ export function PlazaRedesign({
               const b = bundle!;
               const experts = b.agents.slice(0, 3);
               const skillCards = b.tools.slice(0, 4);
-              const topCases = [...b.cases]
-                .sort((a, b) => heatScore(engagementOf(b.id)) - heatScore(engagementOf(a.id)))
-                .slice(0, 3);
+              const topCase = [...b.cases].sort(
+                (a, bb) => heatScore(engagementOf(bb.id)) - heatScore(engagementOf(a.id)),
+              )[0];
+              const narrative = topCase ? outcomeFromNarrativeCard(topCase) : null;
+              const narrativeItem = topCase?.action.type === 'case' ? getPortalItemById(topCase.action.caseId) : null;
+              const primaryCaseId = topCase?.action.type === 'case' ? topCase.action.caseId : null;
               const caseCount = b.cases.filter((c) => c.kind === 'case').length;
               const trainingCount = b.cases.filter((c) => c.kind === 'training').length;
               const insightCount = b.cases.filter((c) => c.kind === 'news' || c.kind === 'insight').length;
@@ -932,10 +944,13 @@ export function PlazaRedesign({
               const cap = SCENARIO_CAPABILITY_CATEGORIES.find((c) =>
                 SCENARIO_CAPABILITY_MAP[def.id as keyof typeof SCENARIO_CAPABILITY_MAP]?.includes(c.id),
               );
+              const pipelineSteps = narrative?.steps?.length
+                ? narrative.steps.slice(0, 3)
+                : [];
               return (
                 <div
                   key={def.id}
-                  className="flex flex-col gap-3 rounded-lg border p-4 transition hover:shadow-sm"
+                  className="flex flex-col gap-3 rounded-lg border p-4"
                   style={{ borderColor: LINE, backgroundColor: '#fff' }}
                 >
                   {/* 顶部标题行：图标 + 标题 + 分类标签 + 徽章 */}
@@ -972,62 +987,85 @@ export function PlazaRedesign({
                           ) : null}
                           {isNew ? (
                             <span
-                              className="rounded px-1.5 py-px text-[9px] font-semibold"
-                              style={{ backgroundColor: '#e8f5e9', color: '#2e7d32' }}
+                              className="rounded border px-1.5 py-px text-[9px] font-semibold"
+                              style={{ backgroundColor: '#fff', borderColor: '#2e7d32', color: '#2e7d32' }}
                             >
                               New
                             </span>
                           ) : null}
                         </div>
                       </div>
-                      <p className="line-clamp-3 text-[11px] leading-relaxed" style={{ color: MUTED }}>
-                        {def.desc}
+                      <p className="line-clamp-2 text-[11px] leading-relaxed" style={{ color: MUTED }}>
+                        {narrative?.desc ?? def.desc}
                       </p>
                     </div>
                   </div>
 
-                  {/* 精选内容列表 */}
-                  {topCases.length > 0 ? (
+                  {/* 类型标签 + 金案例标 */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className="rounded border px-2 py-px text-[10px]"
+                      style={{ backgroundColor: '#fff', borderColor: LINE, color: MUTED }}
+                    >
+                      {narrative?.typeLabel ?? '场景案例'}
+                    </span>
+                    {narrativeItem?.isGold ? (
+                      <span
+                        className="rounded border px-2 py-px text-[10px]"
+                        style={{ backgroundColor: '#fff', borderColor: '#e6a23c', color: '#b45309' }}
+                      >
+                        金案例
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {/* 专家链路步骤 */}
+                  {pipelineSteps.length > 0 ? (
                     <div className="flex flex-col gap-2 rounded-lg border p-2.5" style={{ borderColor: '#eeebe7' }}>
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-semibold" style={{ color: FG }}>
-                          精选内容
+                          专家链路
                         </span>
                         <span className="text-[9px]" style={{ color: MUTED }}>
-                          按热度
+                          {pipelineSteps.length} 步接力
                         </span>
                       </div>
-                      <div className="flex flex-col gap-2">
-                        {topCases.map((card) => {
-                          const h = Math.round(heatScore(engagementOf(card.id)));
-                          return (
-                            <button
-                              key={card.id}
-                              type="button"
-                              onClick={() => handleCard(card)}
-                              className="flex flex-col gap-1 rounded-md bg-[#faf9f7] px-2 py-1.5 text-left transition hover:bg-[#f4f2ef]"
+                      <ol className="flex flex-col gap-2">
+                        {pipelineSteps.map((step, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <span
+                              className="flex h-4 w-4 shrink-0 items-center justify-center rounded text-[8px] font-semibold text-white"
+                              style={{ backgroundColor: FG }}
                             >
-                              <div className="flex items-center gap-2">
-                                <span
-                                  className="shrink-0 rounded px-1 py-px text-[9px]"
-                                  style={{ backgroundColor: '#f0eeeb', color: MUTED }}
-                                >
-                                  {card.kindLabel}
-                                </span>
-                                <span className="line-clamp-1 flex-1 text-[11px] font-medium" style={{ color: FG }}>
-                                  {card.title}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-3 text-[9px]" style={{ color: MUTED }}>
-                                {card.publishedAt ? <span>{card.publishedAt}</span> : null}
-                                <span title="热度">
-                                  <i className="fa-solid fa-fire mr-0.5" style={{ color: ACCENT }} />
-                                  {h}
-                                </span>
-                              </div>
-                            </button>
-                          );
-                        })}
+                              {idx + 1}
+                            </span>
+                            <span className="line-clamp-2 flex-1 text-[10px] leading-relaxed" style={{ color: MUTED }}>
+                              {step}
+                            </span>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  ) : null}
+
+                  {/* 痛点 + 成效 */}
+                  {narrative ? (
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <div className="rounded-lg border p-2.5" style={{ borderColor: '#eeebe7' }}>
+                        <span className="mb-1 block text-[9px] font-semibold uppercase tracking-wider" style={{ color: MUTED }}>
+                          痛点
+                        </span>
+                        <p className="line-clamp-3 text-[10px] leading-relaxed" style={{ color: FG }}>
+                          {narrative.painPoint.replace(/^业务痛点[：:]?\s?/, '')}
+                        </p>
+                      </div>
+                      <div className="rounded-lg border p-2.5" style={{ borderColor: '#eeebe7' }}>
+                        <span className="mb-1 block text-[9px] font-semibold uppercase tracking-wider" style={{ color: MUTED }}>
+                          成效指标
+                        </span>
+                        <p className="line-clamp-3 text-[10px] font-semibold leading-relaxed" style={{ color: '#2e7d32' }}>
+                          {narrative.impactMetric.replace(/^提效效果[：:]?\s?/, '')}
+                        </p>
                       </div>
                     </div>
                   ) : null}
@@ -1101,22 +1139,22 @@ export function PlazaRedesign({
                   </div>
 
                   {/* 底部：互动数据 + 操作 */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                  <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
                     <CardEngagementFooter contentId={def.id} publishedAt={publishedAt} />
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => openScenarioInAiMap(def.id)}
-                        className="text-[11px] font-semibold transition hover:opacity-80"
-                        style={{ color: ACCENT }}
+                        onClick={() => openScenarioCaseInAiMap(def.id, primaryCaseId)}
+                        className="rounded-md border bg-zinc-50 px-3 py-1.5 text-[11px] font-medium text-zinc-700 transition hover:bg-zinc-100"
+                        style={{ borderColor: LINE }}
                       >
-                        查看详情 →
+                        查看详情
                       </button>
                       <button
                         type="button"
-                        onClick={() => startScenario(b)}
-                        className="rounded-md px-3 py-1.5 text-[11px] font-semibold text-white transition hover:opacity-90"
-                        style={{ backgroundColor: ACCENT }}
+                        onClick={() => openScenarioDetail(b)}
+                        className="rounded-md border bg-white px-3 py-1.5 text-[11px] font-semibold transition hover:bg-zinc-50"
+                        style={{ borderColor: FG, color: FG }}
                       >
                         开启任务
                       </button>
@@ -1390,6 +1428,16 @@ export function PlazaRedesign({
         />
       ) : null}
 
+      <ScenarioDetailModal
+        bundle={selectedScenarioBundle}
+        onClose={() => setSelectedScenarioBundle(null)}
+        onStartExpertTeam={onStartExpertTeam}
+        onInvokeAgent={onInvokeAgent}
+        onInvokeSkill={onInvokeSkill}
+        onStartScenario={() => {
+          if (selectedScenarioBundle) startScenario(selectedScenarioBundle);
+        }}
+      />
     </div>
   );
 }

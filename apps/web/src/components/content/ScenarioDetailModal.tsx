@@ -6,12 +6,17 @@ import {
   type ScenarioDemoPlan,
   type ScenarioPipelineStep,
 } from '@/domain/scenarioPipeline';
-import type { ScenarioBundle } from '@/domain/portalMap';
+import type { PortalMapCard, ScenarioBundle } from '@/domain/portalMap';
 import type { PrototypeAgentSeed, PrototypeSkillSeed } from '@/domain/prototype/types';
 import { getAgentPersona } from '@/domain/prototype/agentPersonas';
 import { CenterModal } from '@/components/center/CenterShell';
 import { AgentAvatar } from '@/components/brand/AgentAvatar';
 import { useMarketplaceStore } from '@/stores/marketplaceStore';
+import { getPortalItemById, outcomeFromNarrativeCard } from '@/domain/portalCase';
+import { heatScore } from '@/domain/contentEngagement';
+import { useContentEngagementStore } from '@/stores/contentEngagementStore';
+import { useNavigationIntentStore } from '@/stores/navigationIntentStore';
+import { useAppViewStore } from '@/stores/appViewStore';
 
 /** 专家团步骤流（场景详情 / 专家团弹窗共用） */
 export function PipelineStepFlow({
@@ -71,9 +76,11 @@ interface ScenarioDetailModalProps {
   onInvokeSkill: (skill: PrototypeSkillSeed) => void;
   /** V5 广场统一入口：点击后直接按场景计划开启任务 */
   onStartScenario?: () => void;
+  /** 可选：直接指定要展示的案例卡片；否则自动取场景下最热案例 */
+  primaryCard?: PortalMapCard | null;
 }
 
-/** 场景详情弹窗：专家团步骤流 + 参与专家 + 主行动（启动专家团 / 立即体验） */
+/** 场景详情弹窗：以场景下最热案例为主体，展示专家链路 / 痛点 / 成效 */
 export function ScenarioDetailModal({
   bundle,
   onClose,
@@ -81,12 +88,31 @@ export function ScenarioDetailModal({
   onInvokeAgent,
   onInvokeSkill,
   onStartScenario,
+  primaryCard,
 }: ScenarioDetailModalProps) {
   const agents = useMarketplaceStore((s) => s.agents);
   const showToast = useMarketplaceStore((s) => s.showToast);
+  const engagementOf = useContentEngagementStore((s) => s.get);
+  const setAppView = useAppViewStore((s) => s.setAppView);
+  const focusScenario = useNavigationIntentStore((s) => s.focusScenario);
+  const focusPortalItem = useNavigationIntentStore((s) => s.focusPortalItem);
 
   if (!bundle) return null;
   const plan = resolveScenarioDemoPlan(bundle);
+
+  // 取最热案例作为弹窗主体
+  const narrativeCard =
+    primaryCard ??
+    (bundle.cases.length
+      ? [...bundle.cases].sort(
+          (a, b) => heatScore(engagementOf(b.id)) - heatScore(engagementOf(a.id)),
+        )[0]!
+      : null);
+  const narrativeOutcome = narrativeCard ? outcomeFromNarrativeCard(narrativeCard) : null;
+  const narrativeItem =
+    narrativeCard?.action.type === 'case'
+      ? getPortalItemById(narrativeCard.action.caseId)
+      : null;
 
   const invokeStep = (step: ScenarioPipelineStep) => {
     if (!plan) return;
@@ -142,20 +168,32 @@ export function ScenarioDetailModal({
     .filter((a): a is PrototypeAgentSeed => Boolean(a))
     .slice(0, 6);
 
+  const goToCaseDetail = () => {
+    if (narrativeCard?.action.type === 'case') {
+      focusPortalItem(narrativeCard.action.caseId);
+    }
+    focusScenario(bundle.id);
+    setAppView('ai-map');
+    onClose();
+  };
+
+  const title = narrativeOutcome?.title ?? bundle.label;
+  const typeLabel = narrativeOutcome?.typeLabel ?? '场景案例';
+
   return (
     <CenterModal
       open
-      title={`场景 · ${bundle.label}`}
+      title={title}
       onClose={onClose}
       size="lg"
       actions={
         <>
           <button
             type="button"
-            onClick={onClose}
-            className="rounded-xl border border-black/8 px-4 py-2 text-[12px] font-medium"
+            onClick={goToCaseDetail}
+            className="rounded-xl border border-black/8 bg-zinc-50 px-4 py-2 text-[12px] font-medium text-zinc-700 transition hover:bg-zinc-100"
           >
-            取消
+            查看详情
           </button>
           {onStartScenario ? (
             <button
@@ -164,7 +202,7 @@ export function ScenarioDetailModal({
                 onStartScenario();
                 onClose();
               }}
-              className="apple-btn-primary rounded-xl px-4 py-2 text-[12px] font-semibold text-white"
+              className="rounded-xl border border-zinc-900 bg-white px-4 py-2 text-[12px] font-semibold text-zinc-900 transition hover:bg-zinc-50"
             >
               开启任务
             </button>
@@ -175,43 +213,94 @@ export function ScenarioDetailModal({
                 onStartExpertTeam(plan, 0);
                 onClose();
               }}
-              className="rounded-xl bg-zinc-900 px-4 py-2 text-[12px] font-semibold text-white hover:bg-zinc-800"
+              className="rounded-xl border border-zinc-900 bg-white px-4 py-2 text-[12px] font-semibold text-zinc-900 transition hover:bg-zinc-50"
             >
-              启动专家团（同会话接力跑完全程）
+              开启任务
             </button>
           ) : plan ? (
             <button
               type="button"
               onClick={startSolo}
-              className="apple-btn-primary rounded-xl px-4 py-2 text-[12px] font-semibold text-white"
+              className="rounded-xl border border-zinc-900 bg-white px-4 py-2 text-[12px] font-semibold text-zinc-900 transition hover:bg-zinc-50"
             >
-              立即体验
+              开启任务
             </button>
           ) : null}
         </>
       }
     >
       <div className="space-y-4 text-left">
-        <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600">
-            <i className={cn('fa-solid text-[16px]', bundle.icon)} />
-          </span>
-          <div className="min-w-0">
-            <p className="text-[14px] font-semibold text-zinc-900">{bundle.label}</p>
-            <p className="mt-0.5 text-[12px] leading-relaxed text-zinc-500">{bundle.desc}</p>
+        {/* 类型标签 + 场景描述 */}
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] text-zinc-600">
+              {typeLabel}
+            </span>
+            {narrativeItem?.isGold ? (
+              <span className="rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700">
+                金案例
+              </span>
+            ) : null}
           </div>
+          <p className="text-[12px] leading-relaxed text-zinc-700">
+            {narrativeOutcome?.desc ?? bundle.desc}
+          </p>
         </div>
 
-        {plan?.mode === 'team' ? (
-          <div>
-            <p className="mb-2 text-[12px] leading-relaxed text-zinc-600">
-              本场景由 <span className="font-semibold text-zinc-900">{plan.steps.length}</span>{' '}
-              位专家接力完成。启动后将在同一任务对话中顺序接力（计划自动确认）；也可单独调用某一步。
+        {/* 专家链路步骤 */}
+        {narrativeOutcome?.steps?.length ? (
+          <div className="rounded-xl border border-zinc-100 bg-zinc-50/60 p-3">
+            <p className="mb-2 text-[11px] font-semibold text-zinc-700">
+              专家链路
+              {plan?.mode === 'team' ? (
+                <span className="ml-1 font-normal text-zinc-400">
+                  · {plan.steps.length} 步接力
+                </span>
+              ) : null}
+            </p>
+            <ol className="space-y-2">
+              {narrativeOutcome.steps.map((step, idx) => (
+                <li key={idx} className="flex items-start gap-2.5">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-zinc-900 text-[10px] font-semibold text-white">
+                    {idx + 1}
+                  </span>
+                  <p className="min-w-0 flex-1 text-[11px] leading-relaxed text-zinc-700">{step}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        ) : plan?.mode === 'team' ? (
+          <div className="rounded-xl border border-zinc-100 bg-zinc-50/60 p-3">
+            <p className="mb-2 text-[11px] font-semibold text-zinc-700">
+              专家链路 · {plan.steps.length} 步接力
             </p>
             <PipelineStepFlow plan={plan} onInvokeStep={invokeStep} />
           </div>
         ) : null}
 
+        {/* 痛点 + 成效指标 */}
+        {narrativeOutcome ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-zinc-100 bg-white p-3">
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                痛点
+              </p>
+              <p className="text-[11px] leading-relaxed text-zinc-700">
+                {narrativeOutcome.painPoint.replace(/^业务痛点[：:]?\s?/, '')}
+              </p>
+            </div>
+            <div className="rounded-xl border border-zinc-100 bg-white p-3">
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                成效指标
+              </p>
+              <p className="text-[12px] font-semibold leading-relaxed text-[#2e7d32]">
+                {narrativeOutcome.impactMetric.replace(/^提效效果[：:]?\s?/, '')}
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        {/* 参与专家 */}
         {expertCards.length ? (
           <div>
             <p className="mb-2 text-[11px] font-semibold text-zinc-700">
@@ -236,7 +325,7 @@ export function ScenarioDetailModal({
                     <button
                       type="button"
                       onClick={() => invokeBundleAgent(agent.id)}
-                      className="apple-btn-primary shrink-0 rounded-lg px-3 py-1.5 text-[11px] font-semibold text-white transition"
+                      className="shrink-0 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-[11px] font-medium text-zinc-700 transition hover:bg-zinc-50"
                     >
                       调用
                     </button>
