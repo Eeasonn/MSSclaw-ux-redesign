@@ -745,9 +745,9 @@ export function PlazaRedesign({
           style={surfaceStyle}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: FG }}>
+            <h3 className="text-lg font-semibold tracking-tight" style={{ color: FG }}>
               看世界
-            </span>
+            </h3>
             <div className="flex items-center gap-2">
               <MiniSelect
                 ariaLabel="洞察排序"
@@ -838,9 +838,9 @@ export function PlazaRedesign({
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold" style={{ color: FG }}>
+              <h3 className="text-lg font-semibold tracking-tight" style={{ color: FG }}>
                 看自己
-              </span>
+              </h3>
               <div className="flex items-center gap-2">
                 <MiniSelect
                   ariaLabel="看自己排序"
@@ -904,9 +904,9 @@ export function PlazaRedesign({
           style={surfaceStyle}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: FG }}>
-              精选场景案例
-            </span>
+            <h3 className="text-xl font-semibold tracking-tight" style={{ color: FG }}>
+              精选场景
+            </h3>
             <div className="flex items-center gap-2">
               <MiniSelect
                 ariaLabel="场景排序"
@@ -1095,9 +1095,9 @@ export function PlazaRedesign({
       {/* 下区：马上能用 */}
       <div className="rounded-xl border bg-white p-4" style={{ borderColor: LINE }}>
         <div className="mb-3 flex items-center justify-between">
-          <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: FG }}>
+          <h3 className="text-xl font-semibold tracking-tight" style={{ color: FG }}>
             马上能用
-          </span>
+          </h3>
           <span className="text-[10px]" style={{ color: MUTED }}>
             全局公共入口，不受区域/领域筛选影响
           </span>
@@ -1170,8 +1170,11 @@ export function PlazaRedesign({
         </div>
       </div>
 
-      {/* 下区：Tab 切换 */}
+      {/* 下区：AI 能力市场 */}
       <div className="rounded-xl border bg-white p-4" style={{ borderColor: LINE }}>
+        <h3 className="mb-3 text-xl font-semibold tracking-tight" style={{ color: FG }}>
+          AI 能力市场
+        </h3>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b pb-2" style={{ borderColor: LINE }}>
           <div className="flex gap-1">
             {[

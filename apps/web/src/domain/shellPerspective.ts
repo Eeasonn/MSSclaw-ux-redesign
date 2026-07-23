@@ -42,6 +42,10 @@ export const PERSPECTIVE_SECTIONED_VIEWS: Record<
 > = {
   ops: [
     'home',
+    'ai-campus',
+    'select-scenario',
+    'skills-experts',
+    'vibe-space',
     'task',
     'new-task',
     'messages',
@@ -61,6 +65,10 @@ export const PERSPECTIVE_SECTIONED_VIEWS: Record<
   ],
   it: [
     'home',
+    'ai-campus',
+    'select-scenario',
+    'skills-experts',
+    'vibe-space',
     'task',
     'new-task',
     'messages',

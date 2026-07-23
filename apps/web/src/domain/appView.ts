@@ -1,6 +1,13 @@
 export const APP_VIEWS = [
   'home',
+  'ai-campus',
+  'ai-campus-all',
+  'select-scenario',
+  'skills-experts',
+  'vibe-space',
   'ai-map',
+  'world-view',
+  'self-view',
   'task',
   'new-task',
   'messages',
@@ -18,8 +25,6 @@ export const APP_VIEWS = [
   'presentation',
   'workspace-config',
   'portal-ops',
-  'world-view',
-  'self-view',
 ] as const;
 export type AppView = (typeof APP_VIEWS)[number];
 
@@ -43,24 +48,12 @@ export interface AppViewNavItem {
 }
 
 export const APP_VIEW_NAV: AppViewNavItem[] = [
-  { id: 'home', label: '逛广场', subtitle: '找场景 · 开工（AI任务 / AI广场）', icon: 'fa-house', section: 'workspace' },
-  { id: 'task', label: '做任务', subtitle: '计划确认 · 执行 · 交付物', icon: 'fa-list-check', section: 'workspace' },
-  {
-    id: 'ai-map',
-    label: '学案例',
-    subtitle: '样板间 · 可复制业务场景包',
-    icon: 'fa-map',
-    section: 'platform',
-  },
-  { id: 'agents', label: '找专家', subtitle: '浏览 · 配置 · 发布 · 调用', icon: 'fa-robot', section: 'platform' },
-  { id: 'skills', label: '技能', subtitle: '能力资产 · 挂载编排', icon: 'fa-cube', section: 'platform' },
-  { id: 'tools', label: '工具', subtitle: '连接器 · 外部 API', icon: 'fa-plug', section: 'platform' },
-  { id: 'memory', label: '记忆', subtitle: '专家长期记忆 · Reflection', icon: 'fa-brain', section: 'platform' },
-  { id: 'kb', label: '知识', subtitle: '企业文档 · RAG · 溯源', icon: 'fa-book-open', section: 'platform' },
-  { id: 'prompts', label: '提示词', subtitle: '版本 · 审批 · 生命周期', icon: 'fa-file-code', section: 'platform' },
-  { id: 'automation', label: '自动化', subtitle: '定时 · 告警 · 周报', icon: 'fa-bolt', section: 'ops' },
-  { id: 'workflow', label: '工作流', subtitle: 'LangGraph · 专家编排', icon: 'fa-diagram-project', section: 'ops' },
-  { id: 'self-view', label: '看自己', subtitle: '培训赋能 · 个人成长', icon: 'fa-user', section: 'workspace' },
+  { id: 'home', label: '逛广场', subtitle: '发现场景、工具与灵感', icon: 'fa-store', section: 'workspace' },
+  { id: 'ai-campus', label: 'AI学院', subtitle: '系统学 AI，把能力装进工作流', icon: 'fa-graduation-cap', section: 'workspace' },
+  { id: 'select-scenario', label: '选场景', subtitle: '按业务环节挑选可复制场景', icon: 'fa-map', section: 'workspace' },
+  { id: 'skills-experts', label: '找技能·专家', subtitle: '能力资产 · 人格化专家 · 专家团', icon: 'fa-toolbox', section: 'workspace' },
+  { id: 'vibe-space', label: 'Vibe空间', subtitle: '看看大家用 AI 做出了什么', icon: 'fa-bolt', section: 'workspace' },
+  { id: 'ai-map', label: '学案例', subtitle: '样板间 · 可复制业务场景包', icon: 'fa-map', section: 'platform' },
 ];
 
 export const NAV_SECTION_LABELS: Record<NavSection, string> = {

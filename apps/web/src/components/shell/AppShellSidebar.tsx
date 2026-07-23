@@ -213,9 +213,74 @@ export function AppShellSidebar() {
               className={cn('wb-nav-item', appView === 'home' && 'active')}
               title={sidebarCollapsed ? '广场' : '逛广场 · 找场景开工'}
             >
-              <i className="fa-solid fa-house w-5 text-center text-[15px]" />
+              <i className="fa-solid fa-store w-5 text-center text-[15px]" />
               <span className="nav-label">逛广场</span>
             </button>
+
+            {isViewEnabled('ai-campus') && (
+              <button
+                type="button"
+                onClick={() => setAppView('ai-campus')}
+                onMouseEnter={() => ROUTE_PREFETCH['ai-campus']?.()}
+                className={cn('wb-nav-item', appView === 'ai-campus' && 'active')}
+                title={sidebarCollapsed ? 'AI学院' : 'AI学院 · 系统学 AI'}
+              >
+                <i className="fa-solid fa-graduation-cap w-5 text-center text-[15px]" />
+                <span className="nav-label">AI学院</span>
+              </button>
+            )}
+
+            {isViewEnabled('select-scenario') && (
+              <button
+                type="button"
+                onClick={() => setAppView('select-scenario')}
+                onMouseEnter={() => ROUTE_PREFETCH['select-scenario']?.()}
+                className={cn('wb-nav-item', appView === 'select-scenario' && 'active')}
+                title={sidebarCollapsed ? '选场景' : '选场景 · 按业务环节挑选'}
+              >
+                <i className="fa-solid fa-map w-5 text-center text-[15px]" />
+                <span className="nav-label">选场景</span>
+              </button>
+            )}
+
+            {isViewEnabled('skills-experts') && (
+              <button
+                type="button"
+                onClick={() => setAppView('skills-experts')}
+                onMouseEnter={() => ROUTE_PREFETCH['skills-experts']?.()}
+                className={cn('wb-nav-item', appView === 'skills-experts' && 'active')}
+                title={sidebarCollapsed ? '找技能·专家' : '找技能·专家 · 能力与专家'}
+              >
+                <i className="fa-solid fa-toolbox w-5 text-center text-[15px]" />
+                <span className="nav-label">找技能·专家</span>
+              </button>
+            )}
+
+            {isViewEnabled('vibe-space') && (
+              <button
+                type="button"
+                onClick={() => setAppView('vibe-space')}
+                onMouseEnter={() => ROUTE_PREFETCH['vibe-space']?.()}
+                className={cn('wb-nav-item', appView === 'vibe-space' && 'active')}
+                title={sidebarCollapsed ? 'Vibe空间' : 'Vibe空间 · 看看大家用 AI 做了什么'}
+              >
+                <i className="fa-solid fa-bolt w-5 text-center text-[15px]" />
+                <span className="nav-label">Vibe空间</span>
+              </button>
+            )}
+
+            {isViewEnabled('ai-map') && (
+              <button
+                type="button"
+                onClick={() => openResourceWithReturn('ai-map')}
+                onMouseEnter={() => ROUTE_PREFETCH['ai-map']?.()}
+                className={cn('wb-nav-item', appView === 'ai-map' && 'active')}
+                title={sidebarCollapsed ? '案例' : '学案例 · 复制样板间'}
+              >
+                <i className="fa-solid fa-map w-5 text-center text-[15px]" />
+                <span className="nav-label">学案例</span>
+              </button>
+            )}
 
             {isViewEnabled('world-view') && (
               <button
@@ -240,45 +305,6 @@ export function AppShellSidebar() {
               >
                 <i className="fa-solid fa-user w-5 text-center text-[15px]" />
                 <span className="nav-label">看自己</span>
-              </button>
-            )}
-
-            {isViewEnabled('ai-map') && (
-              <button
-                type="button"
-                onClick={() => openResourceWithReturn('ai-map')}
-                onMouseEnter={() => ROUTE_PREFETCH['ai-map']?.()}
-                className={cn('wb-nav-item', appView === 'ai-map' && 'active')}
-                title={sidebarCollapsed ? '案例' : '学案例 · 复制样板间'}
-              >
-                <i className="fa-solid fa-map w-5 text-center text-[15px]" />
-                <span className="nav-label">学案例</span>
-              </button>
-            )}
-
-            {isViewEnabled('agents') && (
-              <button
-                type="button"
-                onClick={() => setAppView('agents')}
-                onMouseEnter={() => ROUTE_PREFETCH.agents?.()}
-                className={cn('wb-nav-item', appView === 'agents' && 'active')}
-                title={sidebarCollapsed ? '找专家' : '找专家 · 浏览与调用'}
-              >
-                <i className="fa-solid fa-robot w-5 text-center text-[15px]" />
-                <span className="nav-label">找专家</span>
-              </button>
-            )}
-
-            {isViewEnabled('skills') && (
-              <button
-                type="button"
-                onClick={() => setAppView('skills')}
-                onMouseEnter={() => ROUTE_PREFETCH.skills?.()}
-                className={cn('wb-nav-item', appView === 'skills' && 'active')}
-                title={sidebarCollapsed ? '技能' : '技能 · 浏览与上传'}
-              >
-                <i className="fa-solid fa-cube w-5 text-center text-[15px]" />
-                <span className="nav-label">技能</span>
               </button>
             )}
 

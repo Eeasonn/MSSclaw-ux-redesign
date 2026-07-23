@@ -21,6 +21,26 @@ export const LazySkillCenterPage = lazy(() =>
   import('@/features/skill/SkillCenterPage').then((m) => ({ default: m.SkillCenterPage })),
 );
 
+export const LazySkillExpertPage = lazy(() =>
+  import('@/features/skill/SkillExpertPage').then((m) => ({ default: m.SkillExpertPage })),
+);
+
+export const LazyAiAcademyPage = lazy(() =>
+  import('@/features/academy/AiAcademyPage').then((m) => ({ default: m.AiAcademyPage })),
+);
+
+export const LazyAiAcademyAllPage = lazy(() =>
+  import('@/features/academy/AiAcademyAllPage').then((m) => ({ default: m.AiAcademyAllPage })),
+);
+
+export const LazyScenarioPickerPage = lazy(() =>
+  import('@/features/scenario/ScenarioPickerPage').then((m) => ({ default: m.ScenarioPickerPage })),
+);
+
+export const LazyVibeSpacePage = lazy(() =>
+  import('@/features/vibe/VibeSpacePage').then((m) => ({ default: m.VibeSpacePage })),
+);
+
 export const LazyAiMapPage = lazy(() =>
   import('@/features/ai-map/AiMapPage').then((m) => ({ default: m.AiMapPage })),
 );
@@ -93,6 +113,11 @@ export const ROUTE_PREFETCH: Partial<Record<AppView, () => void>> = {
   agents: () => void import('@/features/agent/AgentCenterPage'),
   'agent-studio': () => void import('@/features/_legacy/agent/AgentStudioPage'),
   skills: () => void import('@/features/skill/SkillCenterPage'),
+  'skills-experts': () => void import('@/features/skill/SkillExpertPage'),
+  'ai-campus': () => void import('@/features/academy/AiAcademyPage'),
+  'ai-campus-all': () => void import('@/features/academy/AiAcademyAllPage'),
+  'select-scenario': () => void import('@/features/scenario/ScenarioPickerPage'),
+  'vibe-space': () => void import('@/features/vibe/VibeSpacePage'),
   'ai-map': () => void import('@/features/ai-map/AiMapPage'),
   kb: () => void import('@/features/knowledge/KnowledgeCenterPage'),
   cases: () => void import('@/features/cases/CaseLibraryPage'),
