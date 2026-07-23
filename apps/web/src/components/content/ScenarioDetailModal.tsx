@@ -69,6 +69,8 @@ interface ScenarioDetailModalProps {
   onStartExpertTeam: (plan: ScenarioDemoPlan, fromIndex?: number) => void;
   onInvokeAgent: (agent: PrototypeAgentSeed, prompt?: string) => void;
   onInvokeSkill: (skill: PrototypeSkillSeed) => void;
+  /** V5 广场统一入口：点击后直接按场景计划开启任务 */
+  onStartScenario?: () => void;
 }
 
 /** 场景详情弹窗：专家团步骤流 + 参与专家 + 主行动（启动专家团 / 立即体验） */
@@ -78,6 +80,7 @@ export function ScenarioDetailModal({
   onStartExpertTeam,
   onInvokeAgent,
   onInvokeSkill,
+  onStartScenario,
 }: ScenarioDetailModalProps) {
   const agents = useMarketplaceStore((s) => s.agents);
   const showToast = useMarketplaceStore((s) => s.showToast);
@@ -154,7 +157,18 @@ export function ScenarioDetailModal({
           >
             取消
           </button>
-          {plan?.mode === 'team' ? (
+          {onStartScenario ? (
+            <button
+              type="button"
+              onClick={() => {
+                onStartScenario();
+                onClose();
+              }}
+              className="apple-btn-primary rounded-xl px-4 py-2 text-[12px] font-semibold text-white"
+            >
+              开启任务
+            </button>
+          ) : plan?.mode === 'team' ? (
             <button
               type="button"
               onClick={() => {

@@ -11,7 +11,7 @@ import {
 import { canExecuteChat } from '@/domain/permissions';
 import type { ScenarioDemoPlan } from '@/domain/scenarioPipeline';
 import { HomeCommandBox } from '@/components/home/HomeCommandBox';
-import { HomeScenePortal } from '@/components/home/HomeScenePortal';
+import { PlazaRedesign } from '@/components/home/PlazaRedesign';
 import { useHomeStore } from '@/stores/homeStore';
 import { useSessionStore } from '@/stores/sessionStore';
 
@@ -86,7 +86,7 @@ export function HomePage({
 
   return (
     <div className="home-surface flex min-h-0 flex-1 flex-col overflow-y-auto scroll-hidden">
-      <div className="mx-auto flex w-full max-w-[960px] flex-1 flex-col px-5 py-4 md:px-6 md:py-5">
+      <div className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-5 py-4 md:px-6 md:py-5">
         <header className="mb-3 text-center">
           <h1 className="home-slogan-art">
             <span className="home-slogan-gradient">MSS AI提效作战平台，好学又好用！</span>
@@ -97,7 +97,7 @@ export function HomePage({
         </header>
 
         {executeAllowed ? (
-          <div className="mb-6">
+          <div className="mb-5">
             <HomeCommandBox
               onSubmit={(text) =>
                 onSubmitTask(text, useHomeStore.getState().resolveAgentFromText(text))
@@ -123,7 +123,7 @@ export function HomePage({
           </div>
         )}
 
-        <HomeScenePortal
+        <PlazaRedesign
           onInvokeAgent={onInvokeAgent}
           onInvokeSkill={onInvokeSkill}
           onStartExpertTeam={onStartExpertTeam}
