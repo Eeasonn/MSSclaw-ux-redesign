@@ -217,6 +217,19 @@ export function AppShellSidebar() {
               <span className="nav-label">逛广场</span>
             </button>
 
+            {isViewEnabled('world-view') && (
+              <button
+                type="button"
+                onClick={() => setAppView('world-view')}
+                onMouseEnter={() => ROUTE_PREFETCH['world-view']?.()}
+                className={cn('wb-nav-item', appView === 'world-view' && 'active')}
+                title={sidebarCollapsed ? '看世界' : '看世界 · 洞察与培训'}
+              >
+                <i className="fa-solid fa-globe w-5 text-center text-[15px]" />
+                <span className="nav-label">看世界</span>
+              </button>
+            )}
+
             {isViewEnabled('ai-map') && (
               <button
                 type="button"
@@ -292,6 +305,18 @@ export function AppShellSidebar() {
                         >
                           <i className="fa-solid fa-house w-5 text-center text-[15px]" />
                           <span className="nav-label">逛广场</span>
+                        </button>
+                      )}
+                      {isViewEnabled('world-view') && (
+                        <button
+                          type="button"
+                          onClick={() => setAppView('world-view')}
+                          onMouseEnter={() => ROUTE_PREFETCH['world-view']?.()}
+                          className={cn('wb-nav-item', appView === 'world-view' && 'active')}
+                          title={sidebarCollapsed ? '看世界' : '看世界 · 洞察与培训'}
+                        >
+                          <i className="fa-solid fa-globe w-5 text-center text-[15px]" />
+                          <span className="nav-label">看世界</span>
                         </button>
                       )}
                       {isViewEnabled('ai-map') && (

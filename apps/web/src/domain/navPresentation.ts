@@ -100,7 +100,6 @@ export const NAV_PRESENTATION_META: NavPresentationMeta[] = [
     subtitle: '门户内容完整列表',
     icon: 'fa-globe',
     section: 'workspace',
-    hiddenFromSidebar: true,
   },
   {
     id: 'admin',

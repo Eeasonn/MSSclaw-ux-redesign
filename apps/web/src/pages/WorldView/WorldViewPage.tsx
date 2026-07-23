@@ -24,6 +24,7 @@ import { usePortalContentStore } from '@/stores/portalContentStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useAppViewStore } from '@/stores/appViewStore';
 import { useMarketplaceStore } from '@/stores/marketplaceStore';
+import { useNavigationIntentStore } from '@/stores/navigationIntentStore';
 import { openPortalCard } from '@/domain/portalNavigation';
 import { contentToCard } from '@/components/home/PlazaRedesign';
 
@@ -162,10 +163,19 @@ export function WorldViewPage({ onInvokeAgent, onInvokeSkill }: WorldViewPagePro
   const { regionId: lockedRegionId, deptId: lockedDeptId, regionLocked, domainLocked } =
     useWorldViewPerspective();
 
+  const consumePortalType = useNavigationIntentStore((s) => s.consumePortalType);
+
   const [regionId, setRegionId] = useState<RegionId | 'all'>(lockedRegionId);
   const [deptId, setDeptId] = useState<DeptId | 'all'>(lockedDeptId);
   const [typeFilter, setTypeFilter] = useState<WorldContentType>('all');
   const [sortMode, setSortMode] = useState<WorldSortMode>('trending');
+
+  useEffect(() => {
+    const t = consumePortalType();
+    if (t === 'news' || t === 'training') {
+      setTypeFilter(t);
+    }
+  }, [consumePortalType]);
 
   const effectiveRegionId = regionLocked ? lockedRegionId : regionId;
   const effectiveDeptId = domainLocked ? lockedDeptId : deptId;
