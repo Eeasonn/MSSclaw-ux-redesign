@@ -16,3 +16,20 @@ export function openAiAssistantForNewTask() {
   useHomeStore.getState().requestComposerFocus();
   useAppViewStore.getState().setAppView('new-task');
 }
+
+/**
+ * 带着预填文案跳转到「开启一个任务」。
+ * - 技能：/{skillName}
+ * - 专家：@{expertName}
+ * - 专家团：@专家团：{name}
+ */
+export function openNewTaskWithPrefill(text: string) {
+  if (!canExecuteChat()) {
+    useConversationStore.setState({ pushToast: READONLY_EXECUTE_HINT });
+    useAppViewStore.getState().setAppView('home');
+    return;
+  }
+  useHomeStore.getState().setDraftText(text);
+  useHomeStore.getState().requestComposerFocus();
+  useAppViewStore.getState().setAppView('new-task');
+}

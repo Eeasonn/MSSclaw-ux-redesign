@@ -90,7 +90,6 @@ export function AppViewRouter({ appView, handlers }: AppViewRouterProps) {
         onInvokeAgent={handlers.onInvokeAgent}
         onInvokeSkill={handlers.onInvokeSkill}
         onAskKbDocument={handlers.onAskKbDocument}
-        onStartExpertTeam={handlers.onStartExpertTeam}
       />
     );
   }
@@ -285,7 +284,6 @@ export function AppViewRouter({ appView, handlers }: AppViewRouterProps) {
           onInvokeAgent={handlers.onInvokeAgent}
           onInvokeSkill={handlers.onInvokeSkill}
           onAskKbDocument={handlers.onAskKbDocument}
-          onStartExpertTeam={handlers.onStartExpertTeam}
         />
       );
   }

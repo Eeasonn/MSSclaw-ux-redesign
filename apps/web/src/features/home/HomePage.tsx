@@ -8,7 +8,7 @@ import {
   getVisibleHomeDepts,
   getVisibleHomeRegions,
 } from '@/domain/rolePerspective';
-import type { ScenarioDemoPlan } from '@/domain/scenarioPipeline';
+
 import { PlazaRedesign } from '@/components/home/PlazaRedesign';
 import { useHomeStore } from '@/stores/homeStore';
 import { useSessionStore } from '@/stores/sessionStore';
@@ -18,15 +18,12 @@ interface HomePageProps {
   onInvokeAgent: (agent: PrototypeAgentSeed, prompt?: string) => void;
   onInvokeSkill: (skill: PrototypeSkillSeed) => void;
   onAskKbDocument?: (doc: PrototypeKbDocument) => void;
-  /** 场景详情弹窗 → 启动专家团同会话接力 */
-  onStartExpertTeam: (plan: ScenarioDemoPlan, fromIndex?: number) => void;
 }
 
 export function HomePage({
   onSubmitTask,
   onInvokeAgent,
   onInvokeSkill,
-  onStartExpertTeam,
 }: HomePageProps) {
   const { category, regionId, setCategory, applyUserOrgDefaults } = useHomeStore();
   const user = useSessionStore((s) => s.user);
@@ -80,7 +77,6 @@ export function HomePage({
         <PlazaRedesign
           onInvokeAgent={onInvokeAgent}
           onInvokeSkill={onInvokeSkill}
-          onStartExpertTeam={onStartExpertTeam}
         />
       </div>
     </div>

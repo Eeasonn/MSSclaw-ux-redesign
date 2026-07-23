@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { CenterModal } from '@/components/center/CenterShell';
 import { useAppViewStore } from '@/stores/appViewStore';
@@ -26,7 +26,7 @@ function CourseCard({
       onClick={onClick}
       className={cn(
         'group relative flex flex-col overflow-hidden rounded-2xl border border-black/5 bg-white text-left shadow-sm transition hover:shadow-md',
-        isLg ? 'min-h-[260px] p-5' : 'min-h-[76px] p-4',
+        isLg ? 'h-full min-h-[280px] p-5' : 'min-h-[84px] p-4',
       )}
     >
       <div
@@ -231,6 +231,59 @@ export function CourseDetailModal({
   );
 }
 
+function HotSpotItem({ item, isLast }: { item: (typeof AI_HOT_SPOTS)[number]; isLast: boolean }) {
+  return (
+    <div className="relative flex gap-4 pb-6">
+      {!isLast && (
+        <div className="absolute left-[7px] top-5 bottom-0 w-px bg-zinc-200" />
+      )}
+      <div className="relative z-10 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-zinc-200">
+        <div className="h-1.5 w-1.5 rounded-full bg-zinc-500" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2 text-[10px] text-zinc-400">
+          <span>{item.publishedAt}</span>
+          <span className="inline-flex items-center gap-1 text-orange-500">
+            <i className="fa-solid fa-fire" />
+            {formatHeat(item.heat)}
+          </span>
+        </div>
+        <h4 className="mt-1 text-[13px] font-semibold leading-snug text-zinc-800">
+          {item.title}
+        </h4>
+        {item.imageUrl ? (
+          <div className="mt-2 overflow-hidden rounded-xl border border-zinc-100">
+            <img
+              src={item.imageUrl}
+              alt={item.title}
+              className="h-32 w-full object-cover"
+              loading="lazy"
+            />
+          </div>
+        ) : null}
+        <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">{item.summary}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span className="text-[10px] text-zinc-400">{item.sources.length} 个信源</span>
+          {item.sources.slice(0, 4).map((s) => (
+            <span
+              key={s.name}
+              className="rounded-full border border-zinc-100 bg-zinc-50 px-2 py-0.5 text-[10px] text-zinc-500"
+            >
+              {s.name}
+            </span>
+          ))}
+        </div>
+        <div className="mt-2 rounded-lg border border-amber-100 bg-amber-50/50 px-3 py-2">
+          <p className="text-[10px] font-semibold text-amber-800">推荐理由</p>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-amber-700/80">
+            {item.recommendation}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AiAcademyPage() {
   const setAppView = useAppViewStore((s) => s.setAppView);
   const [detail, setDetail] = useState<Course | null>(null);
@@ -239,15 +292,28 @@ export function AiAcademyPage() {
   const featured = COURSES[0];
   const secondary = COURSES.slice(1, 4);
 
+  const groupedHotSpots = useMemo(() => {
+    const groups: { dateLabel: string; items: typeof AI_HOT_SPOTS }[] = [];
+    AI_HOT_SPOTS.forEach((item) => {
+      const last = groups[groups.length - 1];
+      if (last && last.dateLabel === item.dateLabel) {
+        last.items.push(item);
+      } else {
+        groups.push({ dateLabel: item.dateLabel, items: [item] });
+      }
+    });
+    return groups;
+  }, []);
+
   return (
     <div className="center-surface center-page scroll-hidden flex-1 overflow-y-auto">
       <div className="mx-auto max-w-6xl px-4 py-5 md:px-6">
-        <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+        <div className="mb-6 flex flex-col justify-between gap-3 md:flex-row md:items-end">
           <div>
-            <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
-              MSS Claw
+            <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-400">
+              MSS CLAW
             </p>
-            <h2 className="text-[20px] font-semibold tracking-tight text-zinc-900 md:text-[22px]">
+            <h2 className="text-[22px] font-semibold tracking-tight text-zinc-900 md:text-[26px]">
               AI学院
             </h2>
             <p className="mt-1 text-[12px] leading-relaxed text-zinc-500">
@@ -263,13 +329,13 @@ export function AiAcademyPage() {
           </button>
         </div>
 
-        {/* 主推区 */}
-        <section className="mb-6">
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        {/* 主推区：左侧大卡 + 右侧三张次卡，底部对齐 */}
+        <section className="mb-8">
+          <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-5">
             <div className="lg:col-span-3">
               <CourseCard course={featured} size="lg" onClick={() => setDetail(featured)} />
             </div>
-            <div className="flex flex-col gap-3 lg:col-span-2">
+            <div className="flex flex-col justify-between lg:col-span-2">
               {secondary.map((c) => (
                 <CourseCard key={c.id} course={c} size="sm" onClick={() => setDetail(c)} />
               ))}
@@ -277,31 +343,28 @@ export function AiAcademyPage() {
           </div>
         </section>
 
-        {/* AI 热点 */}
+        {/* AI 热点：左侧日期/时间轴，右侧条目 */}
         <section>
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-[16px] font-semibold text-zinc-900">AI热点</h3>
+            <h3 className="text-[18px] font-semibold text-zinc-900">AI热点</h3>
             <span className="text-[11px] text-zinc-400">精选行业动态与落地案例</span>
           </div>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-            {AI_HOT_SPOTS.map((item) => (
-              <div
-                key={item.id}
-                className="flex flex-col gap-2 rounded-xl border border-zinc-100 bg-white p-4 shadow-sm transition hover:shadow-md"
-              >
-                <h4 className="line-clamp-2 text-[13px] font-semibold leading-snug text-zinc-800">
-                  {item.title}
-                </h4>
-                <p className="line-clamp-3 flex-1 text-[11px] leading-relaxed text-zinc-500">
-                  {item.summary}
-                </p>
-                <div className="flex items-center justify-between pt-1 text-[10px] text-zinc-400">
-                  <span className="rounded-full bg-zinc-100 px-2 py-0.5">{item.source}</span>
-                  <span>{item.publishedAt}</span>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {groupedHotSpots.map((group) => (
+              <div key={group.dateLabel} className="flex gap-4">
+                <div className="sticky top-0 h-fit pt-0.5">
+                  <span className="whitespace-nowrap text-[13px] font-semibold text-zinc-800">
+                    {group.dateLabel}
+                  </span>
                 </div>
-                <div className="text-[10px] text-zinc-400">
-                  <i className="fa-solid fa-fire mr-0.5 text-orange-500" />
-                  {formatHeat(item.heat)}
+                <div className="min-w-0 flex-1">
+                  {group.items.map((item, idx) => (
+                    <HotSpotItem
+                      key={item.id}
+                      item={item}
+                      isLast={idx === group.items.length - 1}
+                    />
+                  ))}
                 </div>
               </div>
             ))}

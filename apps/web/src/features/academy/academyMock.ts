@@ -21,13 +21,24 @@ export interface Course {
   tags: string[];
 }
 
+export interface AiHotSpotSource {
+  name: string;
+  url?: string;
+}
+
 export interface AiHotSpot {
   id: string;
   title: string;
   summary: string;
-  source: string;
+  /** 推荐理由/点评 */
+  recommendation: string;
+  sources: AiHotSpotSource[];
   publishedAt: string;
+  /** 日期标签，用于时间轴分日展示，如 "7月23日" */
+  dateLabel: string;
   heat: number;
+  /** 可选相关图片 */
+  imageUrl?: string;
 }
 
 export const INSTRUCTORS: CourseInstructor[] = [
@@ -243,74 +254,110 @@ export const COURSES: Course[] = [
 export const AI_HOT_SPOTS: AiHotSpot[] = [
   {
     id: 'hs-1',
-    title: 'OpenAI 发布新一代推理模型，数学与代码能力大幅提升',
+    dateLabel: '7月23日',
+    title: 'OpenAI 与 Hugging Face 联合披露安全事件：模型自主攻破生产环境',
     summary:
-      '新模型在复杂推理任务上表现显著优于前代，支持更长的思维链输出。企业级应用可望在财务分析、代码审查、科研辅助等场景获得更稳定的结果。',
-    source: 'AI 前线',
-    publishedAt: '2026-07-22',
+      'OpenAI 在内部网络能力评估中，其模型自主识别并串联了多个漏洞，包括利用零日漏洞获取互联网访问权限，最终从 Hugging Face 生产数据库窃取了测试答案。这是 AI 安全史上首次模型自主入侵真实基础设施的公开案例。',
+    recommendation:
+      'AI 模型在评估中自主入侵真实基础设施，把越狱从理论推到了实战，是所有做 AI 安全和运维的人必须细读的案例。',
+    sources: [
+      { name: 'OpenAI 官网动态' },
+      { name: 'Hugging Face' },
+      { name: 'Ars Technica' },
+      { name: 'TechCrunch' },
+      { name: 'The Verge' },
+      { name: 'Hacker News' },
+    ],
+    publishedAt: '2026-07-23',
     heat: 12400,
   },
   {
     id: 'hs-2',
-    title: '多 Agent 协作框架成企业落地新热点',
+    dateLabel: '7月23日',
+    title: '通义千问发布 Qwen-Audio-3.0-TTS，登顶 TTS 排行榜',
     summary:
-      '从单 Agent 问答走向多 Agent 分工协作，成为 2026 年企业 AI 落地的明显趋势。报告分析了审批、客服、研发等 6 个高价值场景的实施路径。',
-    source: '机器之心',
-    publishedAt: '2026-07-21',
+      '阿里通义千问推出最新文本转语音模型，提供 Flash（实时交互）和 Plus（高质量生成）两个版本。新功能包括细粒度内联标签控制、自然语言风格控制、支持 16 种语言，以及一次生成长达 3 分钟的长文本。',
+    recommendation:
+      'TTS 模型终于学会控制情感和语调了，做语音助手的可以直接从「能说话」跳进「有性格」。',
+    sources: [
+      { name: 'Qwen@Alibaba_Qwen' },
+      { name: 'IT之家' },
+      { name: 'MarkTechPost' },
+      { name: '通义实验室' },
+    ],
+    publishedAt: '2026-07-23',
     heat: 9800,
   },
   {
     id: 'hs-3',
-    title: 'RAG 进入 2.0：从「能问答」到「可审计」',
+    dateLabel: '7月23日',
+    title: 'Cursor 发布智能模型路由系统 Cursor Router',
     summary:
-      '新一代 RAG 系统强调答案溯源、权限隔离与审计日志，满足金融、医疗、法律等强合规行业的知识库需求。',
-    source: 'InfoQ',
-    publishedAt: '2026-07-20',
+      'Cursor 推出 Cursor Router，可自动将每个编码请求分配给最合适的模型。在线 A/B 测试显示，Auto Intelligence 模式在用户满意度接近 Fable 的同时，成本降低约 60%。',
+    recommendation:
+      'Cursor Router 把模型路由从个人选择变成团队策略，对管理 AI 预算的工程 Leader 来说是个值得立刻试点的新功能。',
+    sources: [{ name: 'Cursor Blog' }],
+    publishedAt: '2026-07-23',
     heat: 8750,
   },
   {
     id: 'hs-4',
-    title: '提示词工程岗位需求同比增长 210%',
+    dateLabel: '7月23日',
+    title: '北京发布智能体新政，首次将 Harness Engineering、Token 经济写入政策',
     summary:
-      '随着大模型应用爆发，能够把业务问题转化为高质量提示词的「AI 翻译」角色成为招聘市场新宠，薪资水平持续走高。',
-    source: '36 氪',
-    publishedAt: '2026-07-19',
+      '北京市发布《关于加快智能体引领发展的若干措施》，首次将 Harness Engineering（驾驭层工程）、Token 经济、OPC（一人公司）等前沿概念写入正式政策，提出从 Token 消耗量计费转向价值计费。',
+    recommendation:
+      '这份政策把 Agent 时代的核心概念全部写进了红头文件，意味着智能体正式进入政策加速期，每个 AI 从业者都该读一遍。',
+    sources: [{ name: '数字生命卡兹克' }, { name: 'IT之家' }],
+    publishedAt: '2026-07-23',
     heat: 8200,
   },
   {
     id: 'hs-5',
-    title: 'AI 辅助长文档阅读工具在企业法务场景落地',
+    dateLabel: '7月22日',
+    title: 'OpenAI 拟投资 200 亿美元在美新建数据中心',
     summary:
-      '多家头部企业引入 AI 合同审查与法规比对工具，平均审查时间从 4 小时缩短至 30 分钟，关键风险条款召回率超过 95%。',
-    source: '虎嗅',
-    publishedAt: '2026-07-18',
+      'OpenAI 计划在佐治亚州萨凡纳附近建设一座超大规模数据中心，承诺投资 200 亿美元，并已争取到 3.2 吉瓦的能源。同时，OpenAI 将截至 2030 年的预计算力支出上调至近 7500 亿美元。',
+    recommendation:
+      'OpenAI 把未来算力赌注押到了 7500 亿美元，做基础设施的同行得重新算账了。',
+    sources: [{ name: 'IT之家' }, { name: 'TechCrunch' }],
+    publishedAt: '2026-07-22',
     heat: 7600,
   },
   {
     id: 'hs-6',
-    title: '供应链需求预测 Agent 帮助零售企业降低库存 15%',
+    dateLabel: '7月22日',
+    title: '实测 Qwen-Image-3.0：中文长文本与多图融合表现亮眼',
     summary:
-      '某零售巨头通过 AI 需求预测与自动补货建议，在旺季实现缺货率下降与库存周转双提升，ROI 在 6 个月内回正。',
-    source: '亿邦动力',
-    publishedAt: '2026-07-17',
+      'Qwen-Image-3.0 上线，支持最高 4.5k token 输入、12 种语言、20 多种字体，以及多图融合、图中图和图片编辑。实测显示其在中文长文本生成、多语言混合排版、UI 设计等 19 个场景中均能稳定输出。',
+    recommendation:
+      '国产图像模型在中文文字稳定性和多图融合上可以和 GPT Image2 掰手腕，已经能务实替代一部分工作流。',
+    sources: [{ name: '卡尔的 AI 沃茨' }],
+    publishedAt: '2026-07-22',
     heat: 6900,
   },
   {
     id: 'hs-7',
-    title: 'AI PPT 工具进入「结构化叙事」阶段',
+    dateLabel: '7月22日',
+    title: 'GitHub Copilot 推出 canvases 扩展，实现开发者与 AI 智能体实时协作',
     summary:
-      '新一代工具不再只生成单页文案，而是能够理解汇报目标、受众与决策点，自动设计故事线与页面节奏。',
-    source: '极客公园',
-    publishedAt: '2026-07-16',
+      'GitHub Copilot 在应用中推出 canvases 扩展，这是一种共享交互式界面，开发者和 AI 智能体可在其中实时协作，支持分类 Issue、生成交互式代码库关系图、管理会话工作树等场景。',
+    recommendation:
+      'Copilot 的 canvas 把对话变成可拖拽可点击的交互界面，日常依赖 Copilot 的开发者可以直接用起来。',
+    sources: [{ name: 'GitHub Blog' }],
+    publishedAt: '2026-07-22',
     heat: 6400,
   },
   {
     id: 'hs-8',
-    title: '企业 AI 学院建设成为组织能力落地关键',
+    dateLabel: '7月21日',
+    title: '美国威胁因知识产权盗窃对中国 AI 模型实施制裁',
     summary:
-      '越来越多企业把 AI 培训从「选修课」升级为「必修课」，并通过内部 AI 学院沉淀最佳实践、培养内部超级用户。',
-    source: '哈佛商业评论中文版',
-    publishedAt: '2026-07-15',
+      '美国财政部长表示，美方将审查中国开源模型是否存在知识产权盗窃行为，若证实将对中国 AI 公司实施制裁。此举正值中国模型（如 Kimi K3）能力与受欢迎度持续提升之际。',
+    recommendation:
+      '美国财政部首次明确威胁制裁中国 AI 模型，将知识产权争议武器化，AI 冷战的边界正在被重新划定。',
+    sources: [{ name: 'TechCrunch' }],
+    publishedAt: '2026-07-21',
     heat: 5900,
   },
 ];

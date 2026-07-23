@@ -194,7 +194,7 @@ export function AppShellSidebar() {
           type="button"
           onClick={openNewTask}
           className={cn(
-            'ai-task-trigger mb-2 flex w-full items-center justify-center gap-2 rounded-xl py-2 text-[13px] font-semibold text-white shadow-md transition hover:shadow-lg active:scale-[0.98]',
+            'ai-task-trigger mb-2 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-[13px] font-semibold text-white shadow-md transition hover:shadow-lg active:scale-[0.98]',
             appView === 'new-task' && 'ring-2 ring-white/40',
             sidebarCollapsed && 'px-0',
           )}
@@ -206,106 +206,79 @@ export function AppShellSidebar() {
 
         {isBusiness ? (
           <div className="space-y-0.5">
-            <button
-              type="button"
+            <HighlightNavItem
+              id="home"
+              label="逛广场"
+              icon="fa-store"
+              active={appView === 'home'}
+              accent="claw"
               onClick={() => setAppView('home')}
-              onMouseEnter={() => ROUTE_PREFETCH.home?.()}
-              className={cn('wb-nav-item', appView === 'home' && 'active')}
-              title={sidebarCollapsed ? '广场' : '逛广场 · 找场景开工'}
-            >
-              <i className="fa-solid fa-store w-5 text-center text-[15px]" />
-              <span className="nav-label">逛广场</span>
-            </button>
+              collapsed={sidebarCollapsed}
+            />
 
             {isViewEnabled('ai-campus') && (
-              <button
-                type="button"
+              <HighlightNavItem
+                id="ai-campus"
+                label="AI学院"
+                icon="fa-graduation-cap"
+                active={appView === 'ai-campus'}
+                accent="violet"
                 onClick={() => setAppView('ai-campus')}
-                onMouseEnter={() => ROUTE_PREFETCH['ai-campus']?.()}
-                className={cn('wb-nav-item', appView === 'ai-campus' && 'active')}
-                title={sidebarCollapsed ? 'AI学院' : 'AI学院 · 系统学 AI'}
-              >
-                <i className="fa-solid fa-graduation-cap w-5 text-center text-[15px]" />
-                <span className="nav-label">AI学院</span>
-              </button>
+                collapsed={sidebarCollapsed}
+              />
             )}
 
-            {isViewEnabled('select-scenario') && (
-              <button
-                type="button"
-                onClick={() => setAppView('select-scenario')}
-                onMouseEnter={() => ROUTE_PREFETCH['select-scenario']?.()}
-                className={cn('wb-nav-item', appView === 'select-scenario' && 'active')}
-                title={sidebarCollapsed ? '选场景' : '选场景 · 按业务环节挑选'}
-              >
-                <i className="fa-solid fa-map w-5 text-center text-[15px]" />
-                <span className="nav-label">选场景</span>
-              </button>
-            )}
+            <div className="my-1 rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-1">
+              {isViewEnabled('select-scenario') && (
+                <button
+                  type="button"
+                  onClick={() => setAppView('select-scenario')}
+                  onMouseEnter={() => ROUTE_PREFETCH['select-scenario']?.()}
+                  className={cn('wb-nav-item', appView === 'select-scenario' && 'active')}
+                  title={sidebarCollapsed ? '选场景' : '选场景 · 按业务环节挑选'}
+                >
+                  <i className="fa-solid fa-map w-5 text-center text-[15px]" />
+                  <span className="nav-label">选场景</span>
+                </button>
+              )}
 
-            {isViewEnabled('skills-experts') && (
-              <button
-                type="button"
-                onClick={() => setAppView('skills-experts')}
-                onMouseEnter={() => ROUTE_PREFETCH['skills-experts']?.()}
-                className={cn('wb-nav-item', appView === 'skills-experts' && 'active')}
-                title={sidebarCollapsed ? '找技能·专家' : '找技能·专家 · 能力与专家'}
-              >
-                <i className="fa-solid fa-toolbox w-5 text-center text-[15px]" />
-                <span className="nav-label">找技能·专家</span>
-              </button>
-            )}
+              {isViewEnabled('ai-map') && (
+                <button
+                  type="button"
+                  onClick={() => openResourceWithReturn('ai-map')}
+                  onMouseEnter={() => ROUTE_PREFETCH['ai-map']?.()}
+                  className={cn('wb-nav-item', appView === 'ai-map' && 'active')}
+                  title={sidebarCollapsed ? '案例' : '学案例 · 复制样板间'}
+                >
+                  <i className="fa-solid fa-lightbulb w-5 text-center text-[15px]" />
+                  <span className="nav-label">学案例</span>
+                </button>
+              )}
+
+              {isViewEnabled('skills-experts') && (
+                <button
+                  type="button"
+                  onClick={() => setAppView('skills-experts')}
+                  onMouseEnter={() => ROUTE_PREFETCH['skills-experts']?.()}
+                  className={cn('wb-nav-item', appView === 'skills-experts' && 'active')}
+                  title={sidebarCollapsed ? '找技能·专家' : '找技能·专家 · 能力与专家'}
+                >
+                  <i className="fa-solid fa-toolbox w-5 text-center text-[15px]" />
+                  <span className="nav-label">找技能·专家</span>
+                </button>
+              )}
+            </div>
 
             {isViewEnabled('vibe-space') && (
-              <button
-                type="button"
+              <HighlightNavItem
+                id="vibe-space"
+                label="Vibe空间"
+                icon="fa-bolt"
+                active={appView === 'vibe-space'}
+                accent="amber"
                 onClick={() => setAppView('vibe-space')}
-                onMouseEnter={() => ROUTE_PREFETCH['vibe-space']?.()}
-                className={cn('wb-nav-item', appView === 'vibe-space' && 'active')}
-                title={sidebarCollapsed ? 'Vibe空间' : 'Vibe空间 · 看看大家用 AI 做了什么'}
-              >
-                <i className="fa-solid fa-bolt w-5 text-center text-[15px]" />
-                <span className="nav-label">Vibe空间</span>
-              </button>
-            )}
-
-            {isViewEnabled('ai-map') && (
-              <button
-                type="button"
-                onClick={() => openResourceWithReturn('ai-map')}
-                onMouseEnter={() => ROUTE_PREFETCH['ai-map']?.()}
-                className={cn('wb-nav-item', appView === 'ai-map' && 'active')}
-                title={sidebarCollapsed ? '案例' : '学案例 · 复制样板间'}
-              >
-                <i className="fa-solid fa-map w-5 text-center text-[15px]" />
-                <span className="nav-label">学案例</span>
-              </button>
-            )}
-
-            {isViewEnabled('world-view') && (
-              <button
-                type="button"
-                onClick={() => setAppView('world-view')}
-                onMouseEnter={() => ROUTE_PREFETCH['world-view']?.()}
-                className={cn('wb-nav-item', appView === 'world-view' && 'active')}
-                title={sidebarCollapsed ? '看世界' : '看世界 · 洞察与培训'}
-              >
-                <i className="fa-solid fa-globe w-5 text-center text-[15px]" />
-                <span className="nav-label">看世界</span>
-              </button>
-            )}
-
-            {isViewEnabled('self-view') && (
-              <button
-                type="button"
-                onClick={() => setAppView('self-view')}
-                onMouseEnter={() => ROUTE_PREFETCH['self-view']?.()}
-                className={cn('wb-nav-item', appView === 'self-view' && 'active')}
-                title={sidebarCollapsed ? '看自己' : '看自己 · 培训赋能'}
-              >
-                <i className="fa-solid fa-user w-5 text-center text-[15px]" />
-                <span className="nav-label">看自己</span>
-              </button>
+                collapsed={sidebarCollapsed}
+              />
             )}
 
             <SidebarTaskPanel />
@@ -456,6 +429,72 @@ export function AppShellSidebar() {
         </div>
       </div>
     </aside>
+  );
+}
+
+function HighlightNavItem({
+  id,
+  label,
+  icon,
+  active,
+  accent,
+  onClick,
+  collapsed,
+}: {
+  id: AppView;
+  label: string;
+  icon: string;
+  active: boolean;
+  accent: 'claw' | 'violet' | 'amber';
+  onClick: () => void;
+  collapsed: boolean;
+}) {
+  const ACCENT = {
+    claw: {
+      bar: 'bg-gradient-to-b from-rose-500 to-orange-500',
+      iconBg: 'bg-gradient-to-br from-rose-50 to-orange-50',
+      icon: 'text-rose-600',
+    },
+    violet: {
+      bar: 'bg-gradient-to-b from-violet-500 to-fuchsia-500',
+      iconBg: 'bg-gradient-to-br from-violet-50 to-fuchsia-50',
+      icon: 'text-violet-600',
+    },
+    amber: {
+      bar: 'bg-gradient-to-b from-amber-400 to-orange-500',
+      iconBg: 'bg-gradient-to-br from-amber-50 to-orange-50',
+      icon: 'text-amber-600',
+    },
+  };
+  const a = ACCENT[accent];
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => ROUTE_PREFETCH[id]?.()}
+      className={cn(
+        'wb-nav-item group relative overflow-hidden',
+        active && 'active',
+      )}
+      title={collapsed ? label : `${label} · 高频入口`}
+    >
+      <span
+        className={cn(
+          'absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full opacity-0 transition-opacity group-hover:opacity-100',
+          a.bar,
+          active && 'opacity-100',
+        )}
+      />
+      <span
+        className={cn(
+          'flex h-7 w-7 items-center justify-center rounded-lg transition',
+          a.iconBg,
+        )}
+      >
+        <i className={cn('fa-solid w-5 text-center text-[15px]', icon, a.icon)} />
+      </span>
+      <span className="nav-label">{label}</span>
+    </button>
   );
 }
 

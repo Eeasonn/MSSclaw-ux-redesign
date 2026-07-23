@@ -623,6 +623,24 @@
 
 
 
+.wb-nav-item--highlight {
+
+  font-weight: 500;
+
+  color: var(--text-primary);
+
+}
+
+
+
+.wb-nav-item--highlight:hover {
+
+  background: rgba(0, 0, 0, 0.05);
+
+}
+
+
+
 .wb-nav-item-nested {
 
   padding-left: 1.75rem;

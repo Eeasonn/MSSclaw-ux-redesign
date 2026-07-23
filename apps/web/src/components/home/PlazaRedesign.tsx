@@ -12,7 +12,7 @@ import {
   type PortalCardAction,
   type ScenarioBundle,
 } from '@/domain/portalMap';
-import { type PortalContentItem } from '@/domain/prototype/portalContent';
+
 import {
   SCENARIO_CAPABILITY_CATEGORIES,
   SCENARIO_CAPABILITY_MAP,
@@ -43,6 +43,7 @@ import {
 } from '@/domain/plazaToolGuides';
 import { openPortalCard } from '@/domain/portalNavigation';
 import { openResourceWithReturn } from '@/domain/openResourceNav';
+import { openNewTaskWithPrefill } from '@/domain/openNewTask';
 import { isNewScenario } from '@/domain/contentBadges';
 import {
   RANK_MODE_OPTIONS,
@@ -61,14 +62,13 @@ import { usePortalContentStore } from '@/stores/portalContentStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useAppViewStore } from '@/stores/appViewStore';
 import { useNavigationIntentStore } from '@/stores/navigationIntentStore';
-import { ScenarioDetailModal } from '@/components/content/ScenarioDetailModal';
+
 import { outcomeFromNarrativeCard } from '@/domain/portalCase';
-import type { ScenarioDemoPlan } from '@/domain/scenarioPipeline';
+
 
 interface PlazaRedesignProps {
   onInvokeAgent: (agent: PrototypeAgentSeed, prompt?: string) => void;
   onInvokeSkill: (skill: PrototypeSkillSeed) => void;
-  onStartExpertTeam: (plan: ScenarioDemoPlan, fromIndex?: number) => void;
 }
 
 type Perspective =
@@ -139,10 +139,6 @@ function usePlazaPerspective(): {
   }, [user]);
 }
 
-function isPublicInsight(item: PortalContentItem): boolean {
-  return item.ownerRegionId === null;
-}
-
 function regionMatch(item: { ownerRegionId?: RegionId | null }, regionId: RegionId | 'all'): boolean {
   if (regionId === 'all') return true;
   return item.ownerRegionId === regionId;
@@ -196,26 +192,6 @@ function Tag({ children, className }: { children: ReactNode; className?: string 
 
 function LockHint() {
   return <span className="text-[10px] text-[#c0512f]">由权限锁定</span>;
-}
-
-export function contentToCard(item: PortalContentItem): PortalMapCard {
-  return {
-    id: `portal:${item.id}`,
-    kind: item.type,
-    title: item.title,
-    desc: item.desc,
-    icon: item.icon,
-    kindLabel:
-      item.type === 'case'
-        ? '场景案例'
-        : item.type === 'training'
-          ? '培训赋能'
-          : '前沿洞察',
-    publishedAt: item.publishedAt,
-    ownerDeptIds: item.ownerDeptIds,
-    ownerRegionId: item.ownerRegionId ?? null,
-    action: { type: 'case', caseId: item.id },
-  };
 }
 
 function resolveCardAgent(
@@ -350,7 +326,6 @@ function CardEngagementFooter({
 export function PlazaRedesign({
   onInvokeAgent,
   onInvokeSkill,
-  onStartExpertTeam,
 }: PlazaRedesignProps) {
   const agents = useMarketplaceStore((s) => s.agents);
   const skills = useMarketplaceStore((s) => s.skills);
@@ -369,14 +344,10 @@ export function PlazaRedesign({
   const [deptId, setDeptId] = useState<DeptId | 'all'>(lockedDeptId);
   const [capability, setCapability] = useState<ScenarioCapabilityId | 'all'>('all');
   const [bottomTab, setBottomTab] = useState<BottomTab>('skills');
-  const [insightRankMode, setInsightRankMode] = useState<RankMode>('trending');
-  const [insightScopeTab, setInsightScopeTab] = useState<'public' | 'region' | 'domain'>('public');
   const [scenarioRankMode, setScenarioRankMode] = useState<RankMode>('trending');
-  const [selfRankMode, setSelfRankMode] = useState<RankMode>('trending');
   const [bottomRankMode, setBottomRankMode] = useState<RankMode>('trending');
   const [activeToolCategory, setActiveToolCategory] = useState<AiToolNavCategoryId>('chat');
   const [howToTool, setHowToTool] = useState<PrototypeToolSeed | null>(null);
-  const [selectedScenarioBundle, setSelectedScenarioBundle] = useState<ReturnType<typeof buildScenarioBundles>[number] | null>(null);
 
   const effectiveRegionId = regionLocked ? lockedRegionId : regionId;
   const effectiveDeptId = domainLocked ? lockedDeptId : deptId;
@@ -416,49 +387,6 @@ export function PlazaRedesign({
   const toolsById = useMemo(() => {
     return new Map(tools.map((t) => [t.id, t]));
   }, [tools]);
-
-  const publicInsights = useMemo(() => {
-    const list = portalContent.filter(
-      (i) => i.published !== false && isPublicInsight(i) && i.type !== 'case',
-    );
-    return sortByRankMode(list, insightRankMode, engagementOf).slice(0, 3);
-  }, [portalContent, insightRankMode, engagementOf, engagementById]);
-
-  const regionInsights = useMemo(() => {
-    const list = portalContent.filter(
-      (i) =>
-        i.published !== false &&
-        i.type !== 'case' &&
-        !isPublicInsight(i) &&
-        regionMatch(i, effectiveRegionId) &&
-        capabilityMatch(i, capability),
-    );
-    return sortByRankMode(list, insightRankMode, engagementOf).slice(0, 3);
-  }, [portalContent, effectiveRegionId, capability, insightRankMode, engagementOf, engagementById]);
-
-  const domainInsights = useMemo(() => {
-    const list = portalContent.filter(
-      (i) =>
-        i.published !== false &&
-        i.type !== 'case' &&
-        !isPublicInsight(i) &&
-        domainMatch(i, effectiveDeptId) &&
-        capabilityMatch(i, capability),
-    );
-    return sortByRankMode(list, insightRankMode, engagementOf).slice(0, 3);
-  }, [portalContent, effectiveDeptId, capability, insightRankMode, engagementOf, engagementById]);
-
-  const filteredSelf = useMemo(() => {
-    const list = portalContent.filter(
-      (i) =>
-        i.published !== false &&
-        i.type === 'training' &&
-        regionMatch(i, effectiveRegionId) &&
-        domainMatch(i, effectiveDeptId) &&
-        capabilityMatch(i, capability),
-    );
-    return sortByRankMode(list, selfRankMode, engagementOf);
-  }, [portalContent, effectiveRegionId, effectiveDeptId, capability, selfRankMode, engagementOf, engagementById]);
 
   const featuredScenes = useMemo(() => {
     const list = FEATURED_SCENARIOS.filter((s) => {
@@ -527,30 +455,13 @@ export function PlazaRedesign({
     openResourceWithReturn('ai-map');
   }
 
-  const focusPortalType = useNavigationIntentStore((s) => s.focusPortalType);
-  const focusPortalItem = useNavigationIntentStore((s) => s.focusPortalItem);
   const focusScenario = useNavigationIntentStore((s) => s.focusScenario);
   const focusCase = useNavigationIntentStore((s) => s.focusCase);
-
-  function openWorldView(type?: 'news' | 'training') {
-    if (type) focusPortalType(type);
-    setAppView('world-view');
-  }
-
-  function openWorldViewWithItem(item: PortalContentItem) {
-    focusPortalItem(item.id);
-    focusPortalType(item.type === 'training' ? 'training' : 'news');
-    setAppView('world-view');
-  }
 
   function openScenarioCaseInAiMap(scenarioId: string, caseId?: string | null) {
     if (caseId) focusCase(caseId);
     focusScenario(scenarioId);
     setAppView('ai-map');
-  }
-
-  function openScenarioDetail(bundle: ScenarioBundle) {
-    setSelectedScenarioBundle(bundle);
   }
 
   function handleCard(card: PortalMapCard) {
@@ -573,18 +484,20 @@ export function PlazaRedesign({
     handleCard(card);
   }
 
-  function startScenario(bundle: ScenarioBundle) {
+  function prefillScenarioTask(bundle: ScenarioBundle) {
     const plan = resolveScenarioDemoPlan(bundle);
     if (!plan) {
       showToast('该场景暂无可执行任务');
       return;
     }
+    const label = FEATURED_SCENARIOS.find((s) => s.id === bundle.id)?.label ?? bundle.label;
     if (plan.mode === 'team') {
-      onStartExpertTeam(plan, 0);
+      openNewTaskWithPrefill(`@专家团：${label} `);
     } else if (plan.soloSkill) {
-      onInvokeSkill(plan.soloSkill);
+      openNewTaskWithPrefill(`${plan.soloSkill.command} `);
     } else if (plan.soloAgent) {
-      onInvokeAgent(plan.soloAgent);
+      const persona = getAgentPersona(plan.soloAgent);
+      openNewTaskWithPrefill(`@${persona.name} `);
     } else {
       showToast('该场景暂无可执行任务');
     }
@@ -609,8 +522,6 @@ export function PlazaRedesign({
         ? '区域已锁定 · 领域可选'
         : '领域已锁定 · 区域可选';
 
-  const surfaceStyle = { backgroundColor: '#ffffff', borderColor: LINE };
-
   const currentToolPicks = useMemo(() => {
     const picks = getPlazaToolPicks(activeToolCategory);
     const external = picks.external
@@ -624,33 +535,25 @@ export function PlazaRedesign({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto scroll-hidden bg-white pb-4">
-      {/* 视角摘要条 */}
-      <div
-        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-white px-4 py-3"
-        style={{ borderColor: LINE }}
-      >
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: MUTED }}>
-            当前视角
-          </span>
-          <span className="text-[12px] font-semibold" style={{ color: FG }}>
+      {/* 逛广场大标题 */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.15em]" style={{ color: MUTED }}>
+            MSS CLAW
+          </p>
+          <h1 className="text-[22px] font-semibold tracking-tight text-zinc-900 md:text-[26px]">
+            逛广场
+          </h1>
+          <p className="mt-0.5 text-[12px]" style={{ color: MUTED }}>
+            发现场景、能力与灵感
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-[11px]" style={{ color: MUTED }}>
+          <span className="rounded-full border px-2.5 py-1" style={{ borderColor: LINE }}>
             {perspective.label}
           </span>
-          <span
-            className="rounded-full border px-2 py-px text-[10px]"
-            style={{ backgroundColor: '#fff', borderColor: LINE, color: MUTED }}
-          >
-            {perspectiveScope}
-          </span>
+          <span>{perspectiveScope}</span>
         </div>
-        <button
-          type="button"
-          className="text-[11px] font-medium transition hover:opacity-80"
-          style={{ color: ACCENT }}
-          onClick={() => showToast('视角切换需联系管理员调整权限')}
-        >
-          申请切换视角
-        </button>
       </div>
 
       {/* 顶部控制区 */}
@@ -737,358 +640,191 @@ export function PlazaRedesign({
         ))}
       </div>
 
-      {/* 上区主体 */}
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
-        {/* 左侧 1/3：洞察 + 看自己 */}
-        <div
-          className="flex flex-col gap-3 rounded-xl border p-4 lg:col-span-1"
-          style={surfaceStyle}
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold tracking-tight" style={{ color: FG }}>
-              看世界
-            </h3>
-            <div className="flex items-center gap-2">
-              <MiniSelect
-                ariaLabel="洞察排序"
-                value={insightRankMode}
-                onChange={setInsightRankMode}
-                options={[...RANK_MODE_OPTIONS]}
-              />
-              <button
-                type="button"
-                onClick={() => openWorldView('news')}
-                className="text-[11px] font-medium transition hover:opacity-80"
-                style={{ color: ACCENT }}
-              >
-                查看更多 →
-              </button>
-            </div>
-          </div>
-
-          <div className="flex flex-1 flex-col gap-2">
-            <div className="mb-1 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {[
-                  { id: 'public', label: '公共' },
-                  { id: 'region', label: '区域' },
-                  { id: 'domain', label: '领域' },
-                ].map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setInsightScopeTab(t.id as 'public' | 'region' | 'domain')}
-                    className="text-[10px] font-medium transition"
-                    style={{
-                      color: insightScopeTab === t.id ? FG : MUTED,
-                    }}
-                  >
-                    <span
-                      className="pb-0.5"
-                      style={{
-                        borderBottom: insightScopeTab === t.id ? `2px solid ${ACCENT}` : '2px solid transparent',
-                      }}
-                    >
-                      {t.label}
-                    </span>
-                  </button>
-                ))}
-              </div>
-              <span className="text-[10px]" style={{ color: MUTED }}>
-                TOP 3
-              </span>
-            </div>
-            {(
-              insightScopeTab === 'public'
-                ? publicInsights
-                : insightScopeTab === 'region'
-                  ? regionInsights
-                  : domainInsights
-            ).map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => openWorldViewWithItem(item)}
-                className="flex flex-col gap-2 rounded-lg border p-2.5 text-left transition hover:bg-zinc-50/60"
-                style={{ borderColor: LINE }}
-              >
-                <span className="text-[12px] font-semibold" style={{ color: FG }}>
-                  {item.title}
-                </span>
-                <div className="flex flex-wrap gap-1">
-                  {insightScopeTab === 'public' ? (
-                    <Tag className="border-[#6b6966] text-[#6b6966]">公共</Tag>
-                  ) : item.ownerRegionId ? (
-                    <Tag className="border-[#4a7c59] text-[#4a7c59]">
-                      {getRegionLabel(item.ownerRegionId)}
-                    </Tag>
-                  ) : null}
-                  {(item.ownerDeptIds ?? []).slice(0, 1).map((d) => (
-                    <Tag key={d} className="border-[#5b6b8c] text-[#5b6b8c]">
-                      {getDeptLabel(d)}
-                    </Tag>
-                  ))}
-                </div>
-                <CardEngagementFooter contentId={item.id} publishedAt={item.publishedAt} />
-              </button>
-            ))}
-          </div>
-
-          <div className="h-px" style={{ backgroundColor: LINE }} />
-
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold tracking-tight" style={{ color: FG }}>
-                看自己
-              </h3>
-              <div className="flex items-center gap-2">
-                <MiniSelect
-                  ariaLabel="看自己排序"
-                  value={selfRankMode}
-                  onChange={setSelfRankMode}
-                  options={[...RANK_MODE_OPTIONS]}
-                />
-                <button
-                  type="button"
-                  onClick={() => setAppView('self-view')}
-                  className="text-[11px] font-medium transition hover:opacity-80"
-                  style={{ color: ACCENT }}
-                >
-                  查看更多 →
-                </button>
-              </div>
-            </div>
-            {filteredSelf.slice(0, 3).map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => handleCard(contentToCard(item))}
-                className="flex flex-col gap-2 rounded-lg border p-2.5 text-left transition hover:bg-zinc-50/60"
-                style={{ borderColor: LINE }}
-              >
-                <div className="flex items-center gap-2">
-                  <i className={cn('fa-solid text-[11px]', item.icon)} style={{ color: MUTED }} />
-                  <span className="line-clamp-1 text-[12px] font-semibold" style={{ color: FG }}>
-                    {item.title}
-                  </span>
-                </div>
-                <span className="line-clamp-2 text-[10px]" style={{ color: MUTED }}>
-                  {item.desc}
-                </span>
-                <div className="flex flex-wrap gap-1">
-                  {item.ownerRegionId ? (
-                    <Tag className="border-[#4a7c59] text-[#4a7c59]">
-                      {getRegionLabel(item.ownerRegionId)}
-                    </Tag>
-                  ) : null}
-                  {(item.ownerDeptIds ?? []).slice(0, 1).map((d) => (
-                    <Tag key={d} className="border-[#5b6b8c] text-[#5b6b8c]">
-                      {getDeptLabel(d)}
-                    </Tag>
-                  ))}
-                </div>
-                <CardEngagementFooter contentId={item.id} publishedAt={item.publishedAt} />
-              </button>
-            ))}
-            {filteredSelf.length === 0 ? (
-              <p className="py-2 text-[10px]" style={{ color: MUTED }}>
-                当前视角下暂无培训内容
-              </p>
-            ) : null}
+      {/* 上区：精选场景 */}
+      <div className="flex flex-col gap-3 rounded-xl border bg-white p-4" style={{ borderColor: LINE }}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-semibold tracking-tight" style={{ color: FG }}>
+            精选场景
+          </h3>
+          <div className="flex items-center gap-2">
+            <MiniSelect
+              ariaLabel="场景排序"
+              value={scenarioRankMode}
+              onChange={setScenarioRankMode}
+              options={[...RANK_MODE_OPTIONS]}
+            />
+            <button
+              type="button"
+              onClick={openScenarioMap}
+              className="text-[11px] font-medium transition hover:opacity-80"
+              style={{ color: ACCENT }}
+            >
+              进案例样板间 →
+            </button>
           </div>
         </div>
 
-        {/* 右侧 2/3：精选场景案例 */}
-        <div
-          className="flex flex-col gap-3 rounded-xl border p-4 lg:col-span-2"
-          style={surfaceStyle}
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-semibold tracking-tight" style={{ color: FG }}>
-              精选场景
-            </h3>
-            <div className="flex items-center gap-2">
-              <MiniSelect
-                ariaLabel="场景排序"
-                value={scenarioRankMode}
-                onChange={setScenarioRankMode}
-                options={[...RANK_MODE_OPTIONS]}
-              />
-              <button
-                type="button"
-                onClick={openScenarioMap}
-                className="text-[11px] font-medium transition hover:opacity-80"
-                style={{ color: ACCENT }}
+        <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2">
+          {featuredScenes.map(({ def, bundle, publishedAt }) => {
+            const b = bundle!;
+            const skillCards = b.tools.slice(0, 4);
+            const topCase = [...b.cases].sort(
+              (a, bb) => heatScore(engagementOf(bb.id)) - heatScore(engagementOf(a.id)),
+            )[0];
+            const narrative = topCase ? outcomeFromNarrativeCard(topCase) : null;
+            const primaryCaseId = topCase?.action.type === 'case' ? topCase.action.caseId : null;
+            const isGold = goldScenarioIds.includes(def.id);
+            const isNew = isNewScenario(def.id);
+            const cap = SCENARIO_CAPABILITY_CATEGORIES.find((c) =>
+              SCENARIO_CAPABILITY_MAP[def.id as keyof typeof SCENARIO_CAPABILITY_MAP]?.includes(c.id),
+            );
+            const pipelineSteps = narrative?.steps?.length ? narrative.steps.slice(0, 3) : [];
+            return (
+              <div
+                key={def.id}
+                className="flex flex-col gap-3 rounded-xl border p-4"
+                style={{ borderColor: LINE, backgroundColor: '#fff' }}
               >
-                进案例样板间 →
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
-            {featuredScenes.map(({ def, bundle, publishedAt }) => {
-              const b = bundle!;
-              const skillCards = b.tools.slice(0, 4);
-              const topCase = [...b.cases].sort(
-                (a, bb) => heatScore(engagementOf(bb.id)) - heatScore(engagementOf(a.id)),
-              )[0];
-              const narrative = topCase ? outcomeFromNarrativeCard(topCase) : null;
-              const primaryCaseId = topCase?.action.type === 'case' ? topCase.action.caseId : null;
-              const isGold = goldScenarioIds.includes(def.id);
-              const isNew = isNewScenario(def.id);
-              const cap = SCENARIO_CAPABILITY_CATEGORIES.find((c) =>
-                SCENARIO_CAPABILITY_MAP[def.id as keyof typeof SCENARIO_CAPABILITY_MAP]?.includes(c.id),
-              );
-              const pipelineSteps = narrative?.steps?.length
-                ? narrative.steps.slice(0, 3)
-                : [];
-              return (
-                <div
-                  key={def.id}
-                  className="flex flex-col gap-3 rounded-lg border p-4"
-                  style={{ borderColor: LINE, backgroundColor: '#fff' }}
-                >
-                  {/* 顶部标题行：图标 + 标题 + 分类标签 + 徽章 */}
-                  <div className="flex items-start gap-3">
-                    <span
-                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
-                      style={{ backgroundColor: '#f0eeeb', color: MUTED }}
-                    >
-                      <i className={cn('fa-solid text-[18px]', def.icon)} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="line-clamp-1 text-[13px] font-semibold" style={{ color: FG }}>
-                            {def.label}
-                          </h3>
-                          {cap ? (
-                            <span
-                              className="rounded border px-1.5 py-px text-[9px]"
-                              style={{ backgroundColor: '#fff', borderColor: LINE, color: MUTED }}
-                            >
-                              {cap.label}
-                            </span>
-                          ) : null}
-                        </div>
-                        <div className="flex shrink-0 flex-wrap items-center gap-1">
-                          {isGold ? (
-                            <span
-                              className="rounded border px-1.5 py-px text-[9px] font-semibold"
-                              style={{ backgroundColor: '#fff', borderColor: '#e6a23c', color: '#b45309' }}
-                            >
-                              金案例
-                            </span>
-                          ) : null}
-                          {isNew ? (
-                            <span
-                              className="rounded border px-1.5 py-px text-[9px] font-semibold"
-                              style={{ backgroundColor: '#fff', borderColor: '#2e7d32', color: '#2e7d32' }}
-                            >
-                              New
-                            </span>
-                          ) : null}
-                        </div>
+                {/* 顶部标题行：图标 + 标题 + 分类标签 + 徽章 */}
+                <div className="flex items-start gap-3">
+                  <span
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+                    style={{ backgroundColor: '#f0eeeb', color: MUTED }}
+                  >
+                    <i className={cn('fa-solid text-[18px]', def.icon)} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="line-clamp-1 text-[14px] font-semibold" style={{ color: FG }}>
+                          {def.label}
+                        </h3>
+                        {cap ? (
+                          <span
+                            className="rounded border px-1.5 py-px text-[9px]"
+                            style={{ backgroundColor: '#fff', borderColor: LINE, color: MUTED }}
+                          >
+                            {cap.label}
+                          </span>
+                        ) : null}
                       </div>
-                      <p className="line-clamp-2 text-[11px] leading-relaxed" style={{ color: MUTED }}>
-                        {narrative?.desc ?? def.desc}
+                      <div className="flex shrink-0 flex-wrap items-center gap-1">
+                        {isGold ? (
+                          <span
+                            className="rounded border px-1.5 py-px text-[9px] font-semibold"
+                            style={{ backgroundColor: '#fff', borderColor: '#e6a23c', color: '#b45309' }}
+                          >
+                            金案例
+                          </span>
+                        ) : null}
+                        {isNew ? (
+                          <span
+                            className="rounded border px-1.5 py-px text-[9px] font-semibold"
+                            style={{ backgroundColor: '#fff', borderColor: '#2e7d32', color: '#2e7d32' }}
+                          >
+                            New
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                    <p className="line-clamp-2 text-[11px] leading-relaxed" style={{ color: MUTED }}>
+                      {narrative?.desc ?? def.desc}
+                    </p>
+                  </div>
+                </div>
+
+                {/* 专家链路步骤 */}
+                {pipelineSteps.length > 0 ? (
+                  <div className="flex flex-col gap-2 rounded-lg border p-2.5" style={{ borderColor: '#eeebe7' }}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-semibold" style={{ color: FG }}>
+                        专家链路
+                      </span>
+                      <span className="text-[9px]" style={{ color: MUTED }}>
+                        {pipelineSteps.length} 步接力
+                      </span>
+                    </div>
+                    <ol className="flex flex-col gap-2">
+                      {pipelineSteps.map((step, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <span
+                            className="flex h-4 w-4 shrink-0 items-center justify-center rounded text-[8px] font-semibold text-white"
+                            style={{ backgroundColor: FG }}
+                          >
+                            {idx + 1}
+                          </span>
+                          <span className="line-clamp-2 flex-1 text-[10px] leading-relaxed" style={{ color: MUTED }}>
+                            {step}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                ) : null}
+
+                {/* 痛点 + 成效 */}
+                {narrative ? (
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <div className="rounded-lg border p-2.5" style={{ borderColor: '#eeebe7' }}>
+                      <span className="mb-1 block text-[9px] font-semibold uppercase tracking-wider" style={{ color: MUTED }}>
+                        痛点
+                      </span>
+                      <p className="line-clamp-3 text-[10px] leading-relaxed" style={{ color: FG }}>
+                        {narrative.painPoint.replace(/^业务痛点[：:]?\s?/, '')}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border p-2.5" style={{ borderColor: '#eeebe7' }}>
+                      <span className="mb-1 block text-[9px] font-semibold uppercase tracking-wider" style={{ color: MUTED }}>
+                        成效指标
+                      </span>
+                      <p className="line-clamp-3 text-[10px] font-semibold leading-relaxed" style={{ color: '#2e7d32' }}>
+                        {narrative.impactMetric.replace(/^提效效果[：:]?\s?/, '')}
                       </p>
                     </div>
                   </div>
+                ) : null}
 
-                  {/* 专家链路步骤 */}
-                  {pipelineSteps.length > 0 ? (
-                    <div className="flex flex-col gap-2 rounded-lg border p-2.5" style={{ borderColor: '#eeebe7' }}>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-semibold" style={{ color: FG }}>
-                          专家链路
-                        </span>
-                        <span className="text-[9px]" style={{ color: MUTED }}>
-                          {pipelineSteps.length} 步接力
-                        </span>
-                      </div>
-                      <ol className="flex flex-col gap-2">
-                        {pipelineSteps.map((step, idx) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <span
-                              className="flex h-4 w-4 shrink-0 items-center justify-center rounded text-[8px] font-semibold text-white"
-                              style={{ backgroundColor: FG }}
-                            >
-                              {idx + 1}
-                            </span>
-                            <span className="line-clamp-2 flex-1 text-[10px] leading-relaxed" style={{ color: MUTED }}>
-                              {step}
-                            </span>
-                          </li>
-                        ))}
-                      </ol>
-                    </div>
-                  ) : null}
-
-                  {/* 痛点 + 成效 */}
-                  {narrative ? (
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      <div className="rounded-lg border p-2.5" style={{ borderColor: '#eeebe7' }}>
-                        <span className="mb-1 block text-[9px] font-semibold uppercase tracking-wider" style={{ color: MUTED }}>
-                          痛点
-                        </span>
-                        <p className="line-clamp-3 text-[10px] leading-relaxed" style={{ color: FG }}>
-                          {narrative.painPoint.replace(/^业务痛点[：:]?\s?/, '')}
-                        </p>
-                      </div>
-                      <div className="rounded-lg border p-2.5" style={{ borderColor: '#eeebe7' }}>
-                        <span className="mb-1 block text-[9px] font-semibold uppercase tracking-wider" style={{ color: MUTED }}>
-                          成效指标
-                        </span>
-                        <p className="line-clamp-3 text-[10px] font-semibold leading-relaxed" style={{ color: '#2e7d32' }}>
-                          {narrative.impactMetric.replace(/^提效效果[：:]?\s?/, '')}
-                        </p>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {/* 关键技能 / 工具标签 */}
-                  {skillCards.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {skillCards.map((c) => (
-                        <span
-                          key={c.id}
-                          className="inline-flex items-center gap-1 rounded-full border px-2 py-px text-[9px]"
-                          style={{ borderColor: LINE, color: MUTED }}
-                        >
-                          <i className={cn('fa-solid text-[8px]', c.icon)} />
-                          {c.meta || c.title}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  {/* 底部：互动数据 + 操作 */}
-                  <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
-                    <CardEngagementFooter contentId={def.id} publishedAt={publishedAt} />
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openScenarioCaseInAiMap(def.id, primaryCaseId)}
-                        className="rounded-md border bg-zinc-50 px-3 py-1.5 text-[11px] font-medium text-zinc-700 transition hover:bg-zinc-100"
-                        style={{ borderColor: LINE }}
+                {/* 关键技能 / 工具标签 */}
+                {skillCards.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {skillCards.map((c) => (
+                      <span
+                        key={c.id}
+                        className="inline-flex items-center gap-1 rounded-full border px-2 py-px text-[9px]"
+                        style={{ borderColor: LINE, color: MUTED }}
                       >
-                        查看详情
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openScenarioDetail(b)}
-                        className="rounded-md border bg-white px-3 py-1.5 text-[11px] font-semibold transition hover:bg-zinc-50"
-                        style={{ borderColor: FG, color: FG }}
-                      >
-                        开启任务
-                      </button>
-                    </div>
+                        <i className={cn('fa-solid text-[8px]', c.icon)} />
+                        {c.meta || c.title}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+
+                {/* 底部：互动数据 + 操作 */}
+                <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
+                  <CardEngagementFooter contentId={def.id} publishedAt={publishedAt} />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openScenarioCaseInAiMap(def.id, primaryCaseId)}
+                      className="rounded-md border bg-zinc-50 px-3 py-1.5 text-[11px] font-medium text-zinc-700 transition hover:bg-zinc-100"
+                      style={{ borderColor: LINE }}
+                    >
+                      查看详情
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => prefillScenarioTask(b)}
+                      className="rounded-md border bg-white px-3 py-1.5 text-[11px] font-semibold transition hover:bg-zinc-50"
+                      style={{ borderColor: FG, color: FG }}
+                    >
+                      开启任务
+                    </button>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -1170,10 +906,10 @@ export function PlazaRedesign({
         </div>
       </div>
 
-      {/* 下区：AI 能力市场 */}
+      {/* 下区：能力市场 */}
       <div className="rounded-xl border bg-white p-4" style={{ borderColor: LINE }}>
         <h3 className="mb-3 text-xl font-semibold tracking-tight" style={{ color: FG }}>
-          AI 能力市场
+          能力市场
         </h3>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b pb-2" style={{ borderColor: LINE }}>
           <div className="flex gap-1">
@@ -1207,9 +943,11 @@ export function PlazaRedesign({
         {bottomTab === 'skills' ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {filteredSkills.map((skill) => (
-              <div
+              <button
                 key={skill.id}
-                className="flex flex-col gap-2 rounded-lg border bg-white p-3"
+                type="button"
+                onClick={() => openNewTaskWithPrefill(`${skill.command} `)}
+                className="flex flex-col gap-2 rounded-lg border bg-white p-3 text-left transition hover:bg-zinc-50/60"
                 style={{ borderColor: LINE }}
               >
                 <div className="flex items-center gap-2">
@@ -1238,7 +976,7 @@ export function PlazaRedesign({
                   baseUses={skill.invokes}
                   publishedAt={skill.uploadedAt}
                 />
-              </div>
+              </button>
             ))}
           </div>
         ) : bottomTab === 'agents' ? (
@@ -1250,7 +988,7 @@ export function PlazaRedesign({
                 <button
                   key={agent.id}
                   type="button"
-                  onClick={() => onInvokeAgent(agent)}
+                  onClick={() => openNewTaskWithPrefill(`@${persona.name} `)}
                   className="flex items-start gap-3 rounded-lg border bg-white p-3 text-left transition hover:bg-zinc-50/60"
                   style={{ borderColor: LINE }}
                 >
@@ -1293,9 +1031,11 @@ export function PlazaRedesign({
               const b = bundle!;
               const teamAgents = b.agents.slice(0, 4);
               return (
-                <div
+                <button
                   key={def.id}
-                  className="flex flex-col gap-2 rounded-lg border bg-white p-3"
+                  type="button"
+                  onClick={() => openNewTaskWithPrefill(`@专家团：${def.label} `)}
+                  className="flex flex-col gap-2 rounded-lg border bg-white p-3 text-left transition hover:bg-zinc-50/60"
                   style={{ borderColor: LINE }}
                 >
                   <div className="flex items-center gap-2">
@@ -1332,15 +1072,13 @@ export function PlazaRedesign({
                     })}
                   </div>
                   <CardEngagementFooter contentId={def.id} publishedAt={publishedAt} />
-                  <button
-                    type="button"
-                    onClick={() => startScenario(b)}
+                  <span
                     className="mt-1 self-start text-[11px] font-semibold transition hover:opacity-80"
                     style={{ color: ACCENT }}
                   >
                     开启任务 →
-                  </button>
-                </div>
+                  </span>
+                </button>
               );
             })}
           </div>
@@ -1355,17 +1093,6 @@ export function PlazaRedesign({
           onOpenGuide={openGuideResource}
         />
       ) : null}
-
-      <ScenarioDetailModal
-        bundle={selectedScenarioBundle}
-        onClose={() => setSelectedScenarioBundle(null)}
-        onStartExpertTeam={onStartExpertTeam}
-        onInvokeAgent={onInvokeAgent}
-        onInvokeSkill={onInvokeSkill}
-        onStartScenario={() => {
-          if (selectedScenarioBundle) startScenario(selectedScenarioBundle);
-        }}
-      />
     </div>
   );
 }
