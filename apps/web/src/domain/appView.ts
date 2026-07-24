@@ -6,8 +6,6 @@ export const APP_VIEWS = [
   'skills-experts',
   'vibe-space',
   'ai-map',
-  'world-view',
-  'self-view',
   'task',
   'new-task',
   'messages',

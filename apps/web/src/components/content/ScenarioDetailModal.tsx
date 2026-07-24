@@ -237,7 +237,7 @@ export function ScenarioDetailModal({
               {typeLabel}
             </span>
             {narrativeItem?.isGold ? (
-              <span className="rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700">
+              <span className="rounded border border-[var(--brand)] bg-[var(--brand)]/5 px-2 py-0.5 text-[10px] text-[var(--brand)]">
                 金案例
               </span>
             ) : null}

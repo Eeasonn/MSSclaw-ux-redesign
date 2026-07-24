@@ -8,6 +8,12 @@
 
 :root {
 
+  --brand: #c0512f;
+  --brand-dark: #8f3b22;
+  --brand-fg: #1c1a17;
+  --brand-muted: #6b6966;
+  --brand-line: #d4d2cf;
+
   --shell-bg: #fafafa;
 
   --panel-bg: #ffffff;
@@ -683,11 +689,11 @@
 
   background:
 
-    radial-gradient(ellipse 140% 120% at 20% 10%, rgba(6, 182, 212, 0.28), transparent 55%),
+    radial-gradient(ellipse 140% 120% at 20% 10%, rgba(184, 134, 11, 0.22), transparent 55%),
 
-    radial-gradient(ellipse 120% 100% at 90% 90%, rgba(99, 102, 241, 0.22), transparent 50%),
+    radial-gradient(ellipse 120% 100% at 90% 90%, rgba(212, 175, 55, 0.18), transparent 50%),
 
-    linear-gradient(135deg, #0f172a 0%, #1e293b 52%, #0f172a 100%);
+    linear-gradient(135deg, #1c1a17 0%, #2d2a26 52%, #1c1a17 100%);
 
   border: 1px solid rgba(255, 255, 255, 0.08);
 
@@ -695,7 +701,7 @@
 
     0 1px 2px rgba(0, 0, 0, 0.18),
 
-    0 8px 24px rgba(15, 23, 42, 0.28),
+    0 8px 24px rgba(28, 26, 23, 0.28),
 
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
 
@@ -918,7 +924,7 @@
 
 .app-sidebar.shell-ops {
 
-  box-shadow: inset 3px 0 0 0 #6366f1;
+  box-shadow: inset 3px 0 0 0 #c0512f;
 
 }
 

@@ -95,7 +95,7 @@ export const COURSES: Course[] = [
     description:
       '针对合同、研报、技术规范、培训手册等长文档，学习如何用 AI 快速提取核心观点、对比条款、生成摘要与问答。课程覆盖分块策略、提示词模板、溯源校验与知识沉淀方法。',
     icon: 'fa-book-open',
-    coverColor: 'from-sky-500 to-indigo-600',
+    coverColor: 'from-[#c0512f] to-[#8f3b22]',
     instructor: INSTRUCTORS[0],
     duration: '2 小时 15 分',
     heat: 9820,
@@ -116,7 +116,7 @@ export const COURSES: Course[] = [
     description:
       '从 Zero-shot 到 Few-shot，从角色设定到思维链，系统学习如何为业务场景写出稳定、可复用的提示词。包含大量真实业务案例与模板库。',
     icon: 'fa-wand-magic-sparkles',
-    coverColor: 'from-violet-500 to-fuchsia-600',
+    coverColor: 'from-[#8f3b22] to-[#c0512f]',
     instructor: INSTRUCTORS[1],
     duration: '1 小时 50 分',
     heat: 8750,
@@ -158,7 +158,7 @@ export const COURSES: Course[] = [
     description:
       '当单一 Agent 无法完成复杂任务时，如何让多个专家 Agent 分工、接力、互相校验？课程以订单审核、内容生产等场景为例，讲解多 Agent 编排模式。',
     icon: 'fa-users-gear',
-    coverColor: 'from-amber-500 to-orange-600',
+    coverColor: 'from-[#c0512f] to-[#5c3d2e]',
     instructor: INSTRUCTORS[1],
     duration: '2 小时 55 分',
     heat: 6890,
@@ -200,7 +200,7 @@ export const COURSES: Course[] = [
     description:
       '学习用 AI 快速完成汇报 PPT：主题拆解、大纲生成、页面文案、配图建议与排版美化。适合经常需要做汇报、培训材料的职场人。',
     icon: 'fa-file-powerpoint',
-    coverColor: 'from-rose-500 to-pink-600',
+    coverColor: 'from-[#5c3d2e] to-[#8f3b22]',
     instructor: INSTRUCTORS[4],
     duration: '1 小时 35 分',
     heat: 9280,

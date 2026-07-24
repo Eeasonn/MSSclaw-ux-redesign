@@ -89,7 +89,7 @@ function WorkCover({ work }: { work: VibeWork }) {
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
       <div className="absolute right-3 top-3 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-zinc-700 shadow-sm">
-        <i className="fa-solid fa-sparkles mr-1 text-amber-500" />
+        <i className="fa-solid fa-sparkles mr-1 text-[var(--brand)]" />
         Vibe
       </div>
     </div>
@@ -119,7 +119,7 @@ export function VibeSpacePage() {
             <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
               MSS Claw
             </p>
-            <h2 className="text-[22px] font-semibold tracking-tight text-zinc-900 md:text-[26px]">
+            <h2 className="text-[22px] font-semibold tracking-tight text-zinc-900">
               Vibe空间
             </h2>
             <p className="mt-1 text-[12px] leading-relaxed text-zinc-500">
@@ -190,7 +190,7 @@ export function VibeSpacePage() {
                     {formatNumber(work.likes)}
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <i className="fa-solid fa-fire text-orange-500" />
+                    <i className="fa-solid fa-fire text-[var(--brand)]" />
                     {formatNumber(work.heat)}
                   </span>
                 </div>

@@ -35,7 +35,7 @@ export function AiAcademyAllPage() {
             <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
               AI学院
             </p>
-            <h2 className="text-[20px] font-semibold tracking-tight text-zinc-900 md:text-[22px]">
+            <h2 className="text-[22px] font-semibold tracking-tight text-zinc-900">
               全部课程
             </h2>
             <p className="mt-1 text-[12px] leading-relaxed text-zinc-500">
@@ -91,7 +91,7 @@ export function AiAcademyAllPage() {
                   {c.duration}
                 </span>
                 <span className="inline-flex items-center gap-1">
-                  <i className="fa-solid fa-fire text-orange-500" />
+                  <i className="fa-solid fa-fire text-[var(--brand)]" />
                   {formatHeat(c.heat)}
                 </span>
               </div>

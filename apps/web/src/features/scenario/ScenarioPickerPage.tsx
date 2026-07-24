@@ -7,6 +7,9 @@ import {
   type ScenarioCapabilityId,
 } from '@/domain/scenarioCapabilities';
 import { FEATURED_SCENARIOS, buildScenarioBundles, type ScenarioBundle } from '@/domain/portalMap';
+import { resolveScenarioDemoPlan } from '@/domain/scenarioPipeline';
+import { getAgentPersona } from '@/domain/prototype/agentPersonas';
+import { openNewTaskWithPrefill } from '@/domain/openNewTask';
 import { useMarketplaceStore } from '@/stores/marketplaceStore';
 import { usePortalContentStore } from '@/stores/portalContentStore';
 import { useSessionStore } from '@/stores/sessionStore';
@@ -75,6 +78,21 @@ export function ScenarioPickerPage() {
     setAppView('ai-map');
   };
 
+  const handleStartScenarioTask = (scenarioId: string) => {
+    const bundle = bundleById.get(scenarioId);
+    if (!bundle) return;
+    const plan = resolveScenarioDemoPlan(bundle);
+    if (!plan) return;
+    const label = FEATURED_SCENARIOS.find((s) => s.id === scenarioId)?.label ?? bundle.label;
+    if (plan.mode === 'team') {
+      openNewTaskWithPrefill(`@专家团：${label} `);
+    } else if (plan.soloSkill) {
+      openNewTaskWithPrefill(`${plan.soloSkill.command} `);
+    } else if (plan.soloAgent) {
+      openNewTaskWithPrefill(`@${getAgentPersona(plan.soloAgent).name} `);
+    }
+  };
+
   return (
     <div className="center-surface center-page scroll-hidden flex-1 overflow-y-auto">
       <div className="mx-auto max-w-6xl px-4 py-5 md:px-6">
@@ -82,7 +100,7 @@ export function ScenarioPickerPage() {
           <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
             MSS Claw
           </p>
-          <h2 className="text-[20px] font-semibold tracking-tight text-zinc-900 md:text-[22px]">
+          <h2 className="text-[22px] font-semibold tracking-tight text-zinc-900">
             选场景
           </h2>
           <p className="mt-1 text-[12px] leading-relaxed text-zinc-500">
@@ -109,41 +127,61 @@ export function ScenarioPickerPage() {
                     const bundle = bundleById.get(s.id);
                     const stats = getScenarioStats(bundle);
                     return (
-                      <button
+                      <div
                         key={s.id}
-                        type="button"
-                        onClick={() => handleSelectScenario(s.id)}
-                        className="flex flex-col gap-3 rounded-2xl border border-zinc-100 bg-white p-4 text-left shadow-sm transition hover:shadow-md"
+                        className="flex flex-col gap-3 rounded-2xl border border-zinc-100 bg-white p-4 shadow-sm transition hover:shadow-md"
                       >
-                        <div className="flex items-start gap-3">
-                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700">
-                            <i className={cn('fa-solid text-[14px]', s.icon)} />
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <h4 className="text-[14px] font-semibold text-zinc-900">{s.label}</h4>
-                            <p className="line-clamp-2 text-[11px] leading-relaxed text-zinc-500">
-                              {s.desc}
+                        <button
+                          type="button"
+                          onClick={() => handleSelectScenario(s.id)}
+                          className="flex flex-col gap-3 text-left"
+                        >
+                          <div className="flex items-start gap-3">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700">
+                              <i className={cn('fa-solid text-[14px]', s.icon)} />
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <h4 className="text-[14px] font-semibold text-zinc-900">{s.label}</h4>
+                              <p className="line-clamp-2 text-[11px] leading-relaxed text-zinc-500">
+                                {s.desc}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-600">
+                              案例 {stats.cases}
+                            </span>
+                            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-600">
+                              培训 {stats.training}
+                            </span>
+                            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-600">
+                              洞察 {stats.insight}
+                            </span>
+                          </div>
+                          <div className="mt-auto rounded-lg bg-zinc-50 px-3 py-2">
+                            <p className="text-[10px] text-zinc-400">热门案例</p>
+                            <p className="line-clamp-1 text-[12px] font-medium text-zinc-700">
+                              {stats.hotCaseTitle}
                             </p>
                           </div>
+                        </button>
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => handleSelectScenario(s.id)}
+                            className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-[11px] font-medium text-zinc-700 transition hover:bg-zinc-100"
+                          >
+                            查看详情 →
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleStartScenarioTask(s.id)}
+                            className="flex-1 rounded-lg border border-zinc-900 bg-white px-3 py-1.5 text-[11px] font-semibold text-zinc-900 transition hover:bg-zinc-50"
+                          >
+                            开启任务
+                          </button>
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-600">
-                            案例 {stats.cases}
-                          </span>
-                          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-600">
-                            培训 {stats.training}
-                          </span>
-                          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-600">
-                            洞察 {stats.insight}
-                          </span>
-                        </div>
-                        <div className="mt-auto rounded-lg bg-zinc-50 px-3 py-2">
-                          <p className="text-[10px] text-zinc-400">热门案例</p>
-                          <p className="line-clamp-1 text-[12px] font-medium text-zinc-700">
-                            {stats.hotCaseTitle}
-                          </p>
-                        </div>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>

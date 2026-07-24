@@ -130,5 +130,4 @@ export const ROUTE_PREFETCH: Partial<Record<AppView, () => void>> = {
   presentation: () => void import('@/features/presentation/PresentationConfigPage'),
   'workspace-config': () => void import('@/features/workspace/WorkspaceConfigPage'),
   'portal-ops': () => void import('@/features/ops/PortalContentOpsPage'),
-  'world-view': () => void import('@/pages/WorldView/WorldViewPage'),
 };

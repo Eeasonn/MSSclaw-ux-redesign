@@ -63,7 +63,7 @@ export function SkillExpertPage({
             <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-400">
               MSS CLAW
             </p>
-            <h2 className="text-[22px] font-semibold tracking-tight text-zinc-900 md:text-[26px]">
+            <h2 className="text-[22px] font-semibold tracking-tight text-zinc-900">
               找技能·专家
             </h2>
             <p className="mt-1 text-[12px] leading-relaxed text-zinc-500">
@@ -173,6 +173,8 @@ function SkillTab({
     openNewTaskWithPrefill(`${skill.command} `);
   };
 
+  const canUse = (s: PrototypeSkillSeed) => getSkillReviewStatus(s) === 'approved';
+
   return (
     <>
       <OrgAssetFilterBar
@@ -190,7 +192,19 @@ function SkillTab({
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
         {list.length ? (
           list.map((s) => (
-            <div key={s.id} className="market-card apple-card flex flex-col p-4">
+            <div
+              key={s.id}
+              onClick={() => (canUse(s) ? handleUseInTask(s) : setDetail(s))}
+              className="market-card apple-card group relative flex cursor-pointer flex-col p-4 transition hover:shadow-md"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  canUse(s) ? handleUseInTask(s) : setDetail(s);
+                }
+              }}
+            >
               <div className="mb-2 flex items-start justify-between gap-2">
                 <SkillAvatar skillId={s.id} icon={s.icon} size={36} title={s.name} />
                 <div className="flex flex-col items-end gap-1">
@@ -234,41 +248,20 @@ function SkillTab({
                 {' · '}
                 {ASSET_VISIBILITY_LABELS[s.visibility ?? 'public']}
               </p>
-              <div className="mt-3 flex gap-2 border-t border-black/[0.04] pt-2.5">
-                {getSkillReviewStatus(s) === 'approved' ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => handleInvoke(s)}
-                      className="apple-btn-primary flex-1 rounded-lg py-1.5 text-[11px] font-semibold text-white transition"
-                    >
-                      调用
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleUseInTask(s)}
-                      className="rounded-lg border border-black/8 px-2.5 py-1.5 text-[11px] font-medium transition hover:bg-black/[0.03]"
-                    >
-                      去任务
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    disabled
-                    className="flex-1 cursor-not-allowed rounded-lg bg-black/[0.04] py-1.5 text-[11px] font-semibold text-[#86868b]"
-                  >
-                    {getSkillReviewStatus(s) === 'pending' ? '审核中 · 暂不可调用' : '已驳回 · 不可调用'}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setDetail(s)}
-                  className="rounded-lg border border-black/8 px-2.5 py-1.5 text-[11px] font-medium transition hover:bg-black/[0.03]"
-                >
-                  详情
-                </button>
-              </div>
+              <span className="mt-3 self-start text-[11px] font-semibold text-claw-600 transition group-hover:opacity-80">
+                {canUse(s) ? '开启任务 →' : '查看详情 →'}
+              </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDetail(s);
+                }}
+                className="absolute right-3 top-3 rounded-md px-2 py-1 text-[10px] font-medium text-zinc-400 opacity-0 transition hover:bg-black/[0.03] hover:text-zinc-700 group-hover:opacity-100"
+                title="详情"
+              >
+                详情
+              </button>
             </div>
           ))
         ) : (
@@ -452,7 +445,19 @@ function ExpertTab({
                 const runnable = Boolean(a.systemPrompt || pack?.systemPrompt);
                 const persona = getAgentPersona(a);
                 return (
-                  <div key={a.id} className="market-card apple-card flex flex-col p-4">
+                  <div
+                    key={a.id}
+                    onClick={() => handleUseExpertInTask(a)}
+                    className="market-card apple-card group relative flex cursor-pointer flex-col p-4 transition hover:shadow-md"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleUseExpertInTask(a);
+                      }
+                    }}
+                  >
                     <div className="mb-2 flex items-start justify-between gap-2">
                       <AgentAvatar agentId={a.id} size={36} title={a.name} />
                       <div className="flex flex-col items-end gap-1">
@@ -498,29 +503,20 @@ function ExpertTab({
                           </span>
                         ))}
                     </div>
-                    <div className="mt-3 flex gap-2 border-t border-black/[0.04] pt-2.5">
-                      <button
-                        type="button"
-                        onClick={() => handleInvoke(a)}
-                        className="apple-btn-primary flex-1 rounded-lg py-1.5 text-[11px] font-semibold text-white transition"
-                      >
-                        调用
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleUseExpertInTask(a)}
-                        className="rounded-lg border border-black/8 px-2.5 py-1.5 text-[11px] font-medium transition hover:bg-black/[0.03]"
-                      >
-                        去任务
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDetail(a)}
-                        className="rounded-lg border border-black/8 px-2.5 py-1.5 text-[11px] font-medium transition hover:bg-black/[0.03]"
-                      >
-                        详情
-                      </button>
-                    </div>
+                    <span className="mt-3 self-start text-[11px] font-semibold text-claw-600 transition group-hover:opacity-80">
+                      开启任务 →
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDetail(a);
+                      }}
+                      className="absolute right-3 top-3 rounded-md px-2 py-1 text-[10px] font-medium text-zinc-400 opacity-0 transition hover:bg-black/[0.03] hover:text-zinc-700 group-hover:opacity-100"
+                      title="详情"
+                    >
+                      详情
+                    </button>
                   </div>
                 );
               })
@@ -535,10 +531,20 @@ function ExpertTab({
             filteredBundles.map((bundle) => {
               const def = FEATURED_SCENARIOS.find((s) => s.id === bundle.id);
               const teamAgents = bundle.agents.slice(0, 4);
+              const teamLabel = def?.label ?? bundle.label;
               return (
                 <div
                   key={bundle.id}
-                  className="market-card apple-card flex flex-col p-4"
+                  onClick={() => handleUseTeamInTask(teamLabel)}
+                  className="market-card apple-card group relative flex cursor-pointer flex-col p-4 transition hover:shadow-md"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleUseTeamInTask(teamLabel);
+                    }
+                  }}
                 >
                   <div className="mb-2 flex items-start gap-3">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600">
@@ -546,7 +552,7 @@ function ExpertTab({
                     </span>
                     <div className="min-w-0 flex-1">
                       <h3 className="text-[14px] font-semibold text-zinc-900">
-                        {def?.label ?? bundle.label}
+                        {teamLabel}
                       </h3>
                       <p className="line-clamp-2 text-[11px] text-zinc-500">{def?.desc ?? bundle.desc}</p>
                     </div>
@@ -572,22 +578,20 @@ function ExpertTab({
                       );
                     })}
                   </div>
-                  <div className="mt-3 flex gap-2 border-t border-black/[0.04] pt-2.5">
-                    <button
-                      type="button"
-                      onClick={() => setScenarioBundle(bundle)}
-                      className="apple-btn-primary flex-1 rounded-lg py-1.5 text-[11px] font-semibold text-white transition"
-                    >
-                      查看详情
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleUseTeamInTask(def?.label ?? bundle.label)}
-                      className="rounded-lg border border-black/8 px-2.5 py-1.5 text-[11px] font-medium transition hover:bg-black/[0.03]"
-                    >
-                      去任务
-                    </button>
-                  </div>
+                  <span className="mt-3 self-start text-[11px] font-semibold text-claw-600 transition group-hover:opacity-80">
+                    开启任务 →
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setScenarioBundle(bundle);
+                    }}
+                    className="absolute right-3 top-3 rounded-md px-2 py-1 text-[10px] font-medium text-zinc-400 opacity-0 transition hover:bg-black/[0.03] hover:text-zinc-700 group-hover:opacity-100"
+                    title="详情"
+                  >
+                    详情
+                  </button>
                 </div>
               );
             })

@@ -72,7 +72,7 @@ function CourseCard({
               {course.duration}
             </span>
             <span className="inline-flex items-center gap-1">
-              <i className="fa-solid fa-fire text-orange-500" />
+              <i className="fa-solid fa-fire text-claw-600" />
               {formatHeat(course.heat)}
             </span>
           </div>
@@ -152,16 +152,16 @@ export function CourseDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="apple-btn-primary rounded-xl px-4 py-2 text-[12px] font-semibold text-white"
+            className="rounded-xl border border-black/8 px-4 py-2 text-[12px]"
           >
-            开始学习
+            关闭
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-black/8 px-4 py-2 text-[12px]"
+            className="apple-btn-primary rounded-xl px-4 py-2 text-[12px] font-semibold text-white"
           >
-            关闭
+            开始学习
           </button>
         </>
       }
@@ -184,7 +184,7 @@ export function CourseDetailModal({
                 {course.duration}
               </span>
               <span className="inline-flex items-center gap-1">
-                <i className="fa-solid fa-fire text-orange-500" />
+                <i className="fa-solid fa-fire text-[var(--brand)]" />
                 {formatHeat(course.heat)}
               </span>
             </div>
@@ -233,9 +233,9 @@ export function CourseDetailModal({
 
 function HotTop5Item({ item }: { item: (typeof AI_HOT_TOP5)[number] }) {
   const rankColors: Record<number, string> = {
-    1: 'text-amber-600',
+    1: 'text-claw-600',
     2: 'text-zinc-500',
-    3: 'text-orange-700',
+    3: 'text-claw-700',
   };
   return (
     <div className="flex items-start gap-3 py-2.5">
@@ -272,7 +272,7 @@ function HotSpotItem({ item, isLast }: { item: (typeof AI_HOT_SPOTS)[number]; is
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2 text-[10px] text-zinc-400">
           <span>{item.publishedAt}</span>
-          <span className="inline-flex items-center gap-1 text-orange-500">
+          <span className="inline-flex items-center gap-1 text-claw-600">
             <i className="fa-solid fa-fire" />
             {formatHeat(item.heat)}
           </span>
@@ -302,9 +302,9 @@ function HotSpotItem({ item, isLast }: { item: (typeof AI_HOT_SPOTS)[number]; is
             </span>
           ))}
         </div>
-        <div className="mt-2 rounded-lg border border-amber-100 bg-amber-50/50 px-3 py-2">
-          <p className="text-[10px] font-semibold text-amber-800">推荐理由</p>
-          <p className="mt-0.5 text-[11px] leading-relaxed text-amber-700/80">
+        <div className="mt-2 rounded-lg border border-[#eeebe7] bg-[#faf7f2] px-3 py-2">
+          <p className="text-[10px] font-semibold text-[#8f3b22]">推荐理由</p>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-[#c0512f]/80">
             {item.recommendation}
           </p>
         </div>
@@ -342,7 +342,7 @@ export function AiAcademyPage() {
             <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-400">
               MSS CLAW
             </p>
-            <h2 className="text-[22px] font-semibold tracking-tight text-zinc-900 md:text-[26px]">
+            <h2 className="text-[22px] font-semibold tracking-tight text-zinc-900">
               AI学院
             </h2>
             <p className="mt-1 text-[12px] leading-relaxed text-zinc-500">

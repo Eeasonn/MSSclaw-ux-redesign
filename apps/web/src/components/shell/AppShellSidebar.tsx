@@ -319,18 +319,6 @@ export function AppShellSidebar() {
                           <span className="nav-label">逛广场</span>
                         </button>
                       )}
-                      {isViewEnabled('world-view') && (
-                        <button
-                          type="button"
-                          onClick={() => setAppView('world-view')}
-                          onMouseEnter={() => ROUTE_PREFETCH['world-view']?.()}
-                          className={cn('wb-nav-item', appView === 'world-view' && 'active')}
-                          title={sidebarCollapsed ? '看世界' : '看世界 · 洞察与培训'}
-                        >
-                          <i className="fa-solid fa-globe w-5 text-center text-[15px]" />
-                          <span className="nav-label">看世界</span>
-                        </button>
-                      )}
                       {isViewEnabled('ai-map') && (
                         <button
                           type="button"
@@ -451,19 +439,19 @@ function HighlightNavItem({
 }) {
   const ACCENT = {
     claw: {
-      bar: 'bg-gradient-to-b from-rose-500 to-orange-500',
-      iconBg: 'bg-gradient-to-br from-rose-50 to-orange-50',
-      icon: 'text-rose-600',
+      bar: 'bg-gradient-to-b from-[#c0512f] to-[#8f3b22]',
+      iconBg: 'bg-gradient-to-br from-[#faf7f2] to-[#f0ebe5]',
+      icon: 'text-[#c0512f]',
     },
     violet: {
-      bar: 'bg-gradient-to-b from-violet-500 to-fuchsia-500',
-      iconBg: 'bg-gradient-to-br from-violet-50 to-fuchsia-50',
-      icon: 'text-violet-600',
+      bar: 'bg-gradient-to-b from-[#5c3d2e] to-[#8f3b22]',
+      iconBg: 'bg-gradient-to-br from-[#f5f2ee] to-[#e8e4df]',
+      icon: 'text-[#8f3b22]',
     },
     amber: {
-      bar: 'bg-gradient-to-b from-amber-400 to-orange-500',
-      iconBg: 'bg-gradient-to-br from-amber-50 to-orange-50',
-      icon: 'text-amber-600',
+      bar: 'bg-gradient-to-b from-[#8f3b22] to-[#c0512f]',
+      iconBg: 'bg-gradient-to-br from-[#f0ebe5] to-[#faf7f2]',
+      icon: 'text-[#c0512f]',
     },
   };
   const a = ACCENT[accent];
