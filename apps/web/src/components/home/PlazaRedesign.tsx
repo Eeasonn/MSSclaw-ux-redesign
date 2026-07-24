@@ -41,7 +41,7 @@ import { useNavigationIntentStore } from '@/stores/navigationIntentStore';
 
 import { PlazaHeader } from './PlazaHeader';
 import { PlazaSceneGrid } from './PlazaSceneGrid';
-import { PlazaToolSection } from './PlazaToolSection';
+import { PlazaToolStrip } from './PlazaToolStrip';
 import { PlazaMarketSection } from './PlazaMarketSection';
 import { PlazaHowToDrawer } from './PlazaHowToDrawer';
 import {
@@ -274,6 +274,16 @@ export function PlazaRedesign({
         domainLocked={domainLocked}
       />
 
+      <PlazaToolStrip
+        activeToolCategory={activeToolCategory}
+        setActiveToolCategory={setActiveToolCategory}
+        externalTools={currentToolPicks.external}
+        internalTools={currentToolPicks.internal}
+        onOpenTool={openTool}
+        onOpenHowTo={openHowTo}
+        onMoreTools={() => setAppView('tools')}
+      />
+
       <PlazaSceneGrid
         featuredScenes={featuredScenes}
         goldScenarioIds={goldScenarioIds}
@@ -282,15 +292,6 @@ export function PlazaRedesign({
         onOpenScenarioMap={openScenarioMap}
         onOpenScenarioCase={openScenarioCaseInAiMap}
         onPrefillScenarioTask={prefillScenarioTask}
-      />
-
-      <PlazaToolSection
-        activeToolCategory={activeToolCategory}
-        setActiveToolCategory={setActiveToolCategory}
-        externalTools={currentToolPicks.external}
-        internalTools={currentToolPicks.internal}
-        onOpenTool={openTool}
-        onOpenHowTo={openHowTo}
       />
 
       <PlazaMarketSection
