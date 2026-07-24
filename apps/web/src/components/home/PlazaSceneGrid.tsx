@@ -3,7 +3,14 @@ import { cn } from '@/lib/utils';
 import {
   SCENARIO_CAPABILITY_CATEGORIES,
   SCENARIO_CAPABILITY_MAP,
+  type ScenarioCapabilityId,
 } from '@/domain/scenarioCapabilities';
+import {
+  HQ_DEPTS,
+  REGIONS,
+  type DeptId,
+  type RegionId,
+} from '@/domain/orgTaxonomy';
 import {
   RANK_MODE_OPTIONS,
   heatScore,
@@ -20,6 +27,7 @@ import {
   LINE,
   MiniSelect,
   CardEngagementFooter,
+  LockHint,
 } from './plazaShared';
 
 interface FeaturedSceneItem {
@@ -30,6 +38,14 @@ interface FeaturedSceneItem {
 }
 
 interface PlazaSceneGridProps {
+  capability: ScenarioCapabilityId | 'all';
+  setCapability: (v: ScenarioCapabilityId | 'all') => void;
+  setRegionId: (v: RegionId | 'all') => void;
+  effectiveRegionId: RegionId | 'all';
+  regionLocked: boolean;
+  setDeptId: (v: DeptId | 'all') => void;
+  effectiveDeptId: DeptId | 'all';
+  domainLocked: boolean;
   featuredScenes: FeaturedSceneItem[];
   goldScenarioIds: string[];
   scenarioRankMode: RankMode;
@@ -40,6 +56,14 @@ interface PlazaSceneGridProps {
 }
 
 export function PlazaSceneGrid({
+  capability,
+  setCapability,
+  setRegionId,
+  effectiveRegionId,
+  regionLocked,
+  setDeptId,
+  effectiveDeptId,
+  domainLocked,
   featuredScenes,
   goldScenarioIds,
   scenarioRankMode,
@@ -65,6 +89,7 @@ export function PlazaSceneGrid({
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border bg-white p-4" style={{ borderColor: LINE }}>
+      {/* 标题 + 排序 */}
       <div className="flex items-center justify-between">
         <h3 className="text-xl font-semibold tracking-tight" style={{ color: FG }}>
           精选场景
@@ -84,6 +109,87 @@ export function PlazaSceneGrid({
           >
             进案例样板间 →
           </button>
+        </div>
+      </div>
+
+      {/* 功能场景 chips + 区域/领域筛选器 */}
+      <div className="flex flex-col gap-3 border-b pb-3 md:flex-row md:items-end md:justify-between" style={{ borderColor: LINE }}>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setCapability('all')}
+            className={cn(
+              'rounded-full border px-3 py-1 text-[11px] font-medium transition',
+              capability === 'all'
+                ? 'border-transparent text-white'
+                : 'bg-white hover:border-zinc-500',
+            )}
+            style={capability === 'all' ? { backgroundColor: FG } : { borderColor: LINE, color: FG }}
+          >
+            全部场景
+          </button>
+          {SCENARIO_CAPABILITY_CATEGORIES.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setCapability(c.id)}
+              className={cn(
+                'rounded-full border px-3 py-1 text-[11px] font-medium transition',
+                capability === c.id
+                  ? 'border-transparent text-white'
+                  : 'bg-white hover:border-zinc-500',
+              )}
+              style={capability === c.id ? { backgroundColor: FG } : { borderColor: LINE, color: FG }}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap items-end gap-3">
+          <div className={cn('flex flex-col gap-1', regionLocked && 'opacity-70')}>
+            <span className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>
+              区域
+            </span>
+            <select
+              aria-label="区域"
+              disabled={regionLocked}
+              value={effectiveRegionId}
+              onChange={(e) => setRegionId(e.target.value as RegionId | 'all')}
+              className="w-[120px] rounded-lg border bg-white px-2.5 py-1.5 text-[11px] outline-none transition disabled:bg-zinc-100 disabled:text-zinc-500"
+              style={{ borderColor: LINE, color: FG }}
+            >
+              <option value="all">全部区域</option>
+              {REGIONS.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+            {regionLocked ? <LockHint /> : null}
+          </div>
+
+          <div className={cn('flex flex-col gap-1', domainLocked && 'opacity-70')}>
+            <span className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>
+              领域
+            </span>
+            <select
+              aria-label="领域"
+              disabled={domainLocked}
+              value={effectiveDeptId}
+              onChange={(e) => setDeptId(e.target.value as DeptId | 'all')}
+              className="w-[120px] rounded-lg border bg-white px-2.5 py-1.5 text-[11px] outline-none transition disabled:bg-zinc-100 disabled:text-zinc-500"
+              style={{ borderColor: LINE, color: FG }}
+            >
+              <option value="all">全部领域</option>
+              {HQ_DEPTS.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
+            {domainLocked ? <LockHint /> : null}
+          </div>
         </div>
       </div>
 

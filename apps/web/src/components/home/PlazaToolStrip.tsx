@@ -31,8 +31,8 @@ export function PlazaToolStrip({
 
   return (
     <div
-      className="mx-4 rounded-xl border bg-white p-3"
-      style={{ borderColor: LINE }}
+      className="rounded-xl border p-3"
+      style={{ borderColor: LINE, backgroundColor: '#f8f7f4' }}
       data-od-id="plaza-tool-strip"
     >
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">

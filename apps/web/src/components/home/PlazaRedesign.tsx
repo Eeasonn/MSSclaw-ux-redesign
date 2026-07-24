@@ -263,16 +263,7 @@ export function PlazaRedesign({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto scroll-hidden bg-white pb-4">
-      <PlazaHeader
-        capability={capability}
-        setCapability={setCapability}
-        setRegionId={setRegionId}
-        effectiveRegionId={effectiveRegionId}
-        regionLocked={regionLocked}
-        setDeptId={setDeptId}
-        effectiveDeptId={effectiveDeptId}
-        domainLocked={domainLocked}
-      />
+      <PlazaHeader />
 
       <PlazaToolStrip
         activeToolCategory={activeToolCategory}
@@ -285,6 +276,14 @@ export function PlazaRedesign({
       />
 
       <PlazaSceneGrid
+        capability={capability}
+        setCapability={setCapability}
+        setRegionId={setRegionId}
+        effectiveRegionId={effectiveRegionId}
+        regionLocked={regionLocked}
+        setDeptId={setDeptId}
+        effectiveDeptId={effectiveDeptId}
+        domainLocked={domainLocked}
         featuredScenes={featuredScenes}
         goldScenarioIds={goldScenarioIds}
         scenarioRankMode={scenarioRankMode}
