@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import { fileURLToPath, URL } from 'node:url';
 
 /** GitHub Pages 项目页需要带仓库名前缀；本地开发保持 `/` */
-const base = process.env.GITHUB_PAGES === 'true' ? '/MSSClaw/' : '/';
+const base = process.env.GITHUB_PAGES === 'true' ? '/MSSclaw-ux-redesign/' : '/';
 
 /** React 工程化前端（npm run dev 默认入口） */
 export default defineConfig({

@@ -27,8 +27,8 @@ const WORKS: VibeWork[] = [
     views: 7650,
     likes: 624,
     heat: 9820,
-    file: '/vibe/Open-Design.html',
-    thumbnail: '/vibe/vibe-thumbs/open-design-thumb.png',
+    file: `${import.meta.env.BASE_URL}vibe/Open-Design.html`,
+    thumbnail: `${import.meta.env.BASE_URL}vibe/vibe-thumbs/open-design-thumb.png`,
     tags: ['Agent', '设计系统', '品牌落地'],
   },
   {
@@ -40,8 +40,8 @@ const WORKS: VibeWork[] = [
     views: 5180,
     likes: 412,
     heat: 6890,
-    file: '/vibe/artifact.html',
-    thumbnail: '/vibe/vibe-thumbs/artifact-thumb.png',
+    file: `${import.meta.env.BASE_URL}vibe/artifact.html`,
+    thumbnail: `${import.meta.env.BASE_URL}vibe/vibe-thumbs/artifact-thumb.png`,
     tags: ['增长运营', '项目管理', '数据看板'],
   },
   {
@@ -53,8 +53,8 @@ const WORKS: VibeWork[] = [
     views: 3420,
     likes: 286,
     heat: 4120,
-    file: '/vibe/artifact1.html',
-    thumbnail: '/vibe/vibe-thumbs/artifact1-thumb.png',
+    file: `${import.meta.env.BASE_URL}vibe/artifact1.html`,
+    thumbnail: `${import.meta.env.BASE_URL}vibe/vibe-thumbs/artifact1-thumb.png`,
     tags: ['社媒运营', '内容中台', '可视化'],
   },
   {
@@ -66,8 +66,8 @@ const WORKS: VibeWork[] = [
     views: 2890,
     likes: 198,
     heat: 3250,
-    file: '/vibe/pre-seed.html',
-    thumbnail: '/vibe/vibe-thumbs/pre-seed-thumb.png',
+    file: `${import.meta.env.BASE_URL}vibe/pre-seed.html`,
+    thumbnail: `${import.meta.env.BASE_URL}vibe/vibe-thumbs/pre-seed-thumb.png`,
     tags: ['创业融资', 'Pitch', 'AI 写作'],
   },
 ];
