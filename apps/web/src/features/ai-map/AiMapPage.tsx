@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import type {
   PrototypeAgentSeed,
@@ -7,10 +7,18 @@ import type {
 } from '@/domain/prototype/types';
 import {
   buildScenarioBundles,
+  FEATURED_SCENARIOS,
   type PortalMapCard,
   type ScenarioBundle,
   type ScenarioListFilter,
 } from '@/domain/portalMap';
+import {
+  SCENARIO_CAPABILITY_CATEGORIES,
+  SCENARIO_CAPABILITY_MAP,
+  SCENARIO_PUBLISHED_AT,
+  isDiscoverScenarioId,
+  type ScenarioCapabilityId,
+} from '@/domain/scenarioCapabilities';
 import {
   CenterModal,
   CenterPageHeader,
@@ -34,6 +42,8 @@ import {
 } from '@/domain/scenarioPipeline';
 import { buildSkillDemoPrompt } from '@/domain/skillRuntime';
 import { buildAgentDemoPrompt } from '@/domain/agents/runtime';
+import { getAgentPersona } from '@/domain/prototype/agentPersonas';
+import { openNewTaskWithPrefill } from '@/domain/openNewTask';
 import { useContentEngagementStore } from '@/stores/contentEngagementStore';
 import { openPortalCard } from '@/domain/portalNavigation';
 import type { DeptFilter, EfficiencyFilter, RegionFilter } from '@/domain/assetFilters';
@@ -115,6 +125,22 @@ function ReturnToTaskButton() {
   );
 }
 
+function getScenarioStats(bundle: ScenarioBundle | undefined) {
+  if (!bundle) return { cases: 0, training: 0, insight: 0, hotCaseTitle: '-' };
+  const cases = bundle.cases.filter((c) => c.kind === 'case').length;
+  const training = bundle.cases.filter((c) => c.kind === 'training').length;
+  const insight = bundle.cases.filter((c) => c.kind === 'insight' || c.kind === 'news').length;
+  const hotCase = bundle.cases.find((c) => c.kind === 'case');
+  return { cases, training, insight, hotCaseTitle: hotCase?.title ?? '-' };
+}
+
+function isScenarioNew(scenarioId: string) {
+  const publishedAt = SCENARIO_PUBLISHED_AT[scenarioId as keyof typeof SCENARIO_PUBLISHED_AT];
+  if (!publishedAt) return false;
+  const days = (Date.now() - new Date(publishedAt).getTime()) / (1000 * 60 * 60 * 24);
+  return days <= 14;
+}
+
 export function AiMapPage({
   onInvokeAgent,
   onInvokeSkill,
@@ -145,6 +171,7 @@ export function AiMapPage({
   const consumeCaseId = useNavigationIntentStore((s) => s.consumeCaseId);
   const pendingScenarioId = useNavigationIntentStore((s) => s.pendingScenarioId);
   const consumeScenarioId = useNavigationIntentStore((s) => s.consumeScenarioId);
+  const detailRef = useRef<HTMLDivElement>(null);
 
   const affiliation = useMemo(
     () => ({
@@ -205,6 +232,21 @@ export function AiMapPage({
       }),
     [agents, skills, tools, portalContent, affiliation, user?.id, user?.name, user?.platformRole],
   );
+
+  const bundleById = useMemo(() => new Map(allBundles.map((b) => [b.id, b])), [allBundles]);
+
+  const scenariosByCapability = useMemo(() => {
+    const map = new Map<ScenarioCapabilityId, typeof FEATURED_SCENARIOS>();
+    for (const cap of SCENARIO_CAPABILITY_CATEGORIES) {
+      map.set(
+        cap.id,
+        FEATURED_SCENARIOS.filter(
+          (s) => isDiscoverScenarioId(s.id) && SCENARIO_CAPABILITY_MAP[s.id].includes(cap.id),
+        ),
+      );
+    }
+    return map;
+  }, []);
 
   useEffect(() => {
     if (!bundles.length) {
@@ -382,6 +424,61 @@ export function AiMapPage({
     ? agents.find((a) => a.id === narrativeOutcome.agentId)
     : undefined;
 
+  const selectScenario = (scenarioId: string) => {
+    setListFilter('all');
+    setDeptFilter('all');
+    setRegionFilter('all');
+    setEfficiencyFilter('all');
+    setSearch('');
+    setSelectedId(scenarioId);
+    detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const openScenarioNarrative = (scenarioId: string) => {
+    selectScenario(scenarioId);
+    const bundle = bundleById.get(scenarioId);
+    if (!bundle) return;
+    const primary =
+      bundle.cases.find(
+        (c) =>
+          c.action.type === 'case' &&
+          getPortalItemById(c.action.caseId)?.isGold &&
+          getPortalItemById(c.action.caseId)?.type === 'case',
+      ) ??
+      bundle.cases.find(
+        (c) => c.action.type === 'case' && getPortalItemById(c.action.caseId)?.type === 'case',
+      ) ??
+      bundle.cases[0] ??
+      null;
+    if (primary) {
+      setNarrativeCard(primary);
+      setNarrativeKind(
+        primary.kind === 'insight'
+          ? 'news'
+          : primary.kind === 'training'
+            ? 'training'
+            : primary.kind === 'case'
+              ? 'case'
+              : 'all',
+      );
+    }
+  };
+
+  const startScenarioTask = (scenarioId: string) => {
+    const bundle = bundleById.get(scenarioId);
+    if (!bundle) return;
+    const plan = resolveScenarioDemoPlan(bundle);
+    if (!plan) return;
+    const label = FEATURED_SCENARIOS.find((s) => s.id === scenarioId)?.label ?? bundle.label;
+    if (plan.mode === 'team') {
+      openNewTaskWithPrefill(`@专家团：${label} `);
+    } else if (plan.soloSkill) {
+      openNewTaskWithPrefill(`${plan.soloSkill.command} `);
+    } else if (plan.soloAgent) {
+      openNewTaskWithPrefill(`@${getAgentPersona(plan.soloAgent).name} `);
+    }
+  };
+
   return (
     <div className="center-surface center-page scroll-hidden flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-4 py-4 md:px-6">
@@ -390,7 +487,7 @@ export function AiMapPage({
           subtitle="多专家场景走专家团打样 · 单专家场景走主能力 · 也可单独调用某位专家"
           tip={
             <>
-              3 分钟演示：选场景 → 打开金案例成效卡 →「立即打样」调用金牌 Skill。首页「AI广场」是橱窗，这里是完整案例库。
+              3 分钟演示：选场景案例 → 打开金案例成效卡 →「立即打样」调用金牌 Skill。首页「AI广场」是橱窗，这里是完整场景案例库。
             </>
           }
           actions={
@@ -426,6 +523,109 @@ export function AiMapPage({
           }
         />
 
+        {/* 场景橱窗 */}
+        <div className="mb-4 space-y-6 overflow-y-auto">
+          <div>
+            <h2 className="text-[22px] font-semibold tracking-tight text-zinc-900">场景案例</h2>
+            <p className="mt-1 text-[12px] leading-relaxed text-zinc-500">
+              按业务环节挑选可复制场景，点击进入案例样板间
+            </p>
+          </div>
+
+          {SCENARIO_CAPABILITY_CATEGORIES.map((cap) => {
+            const scenarios = scenariosByCapability.get(cap.id) ?? [];
+            if (!scenarios.length) return null;
+            return (
+              <section key={cap.id}>
+                <div className="mb-3 flex items-center gap-2">
+                  <span
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-white"
+                    style={{ backgroundColor: '#c0512f' }}
+                  >
+                    <i className={cn('fa-solid text-[12px]', cap.icon)} />
+                  </span>
+                  <div>
+                    <h3 className="text-[15px] font-semibold text-zinc-900">{cap.label}</h3>
+                    <p className="text-[11px] text-zinc-400">{cap.blurb}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+                  {scenarios.map((s) => {
+                    const bundle = bundleById.get(s.id);
+                    const stats = getScenarioStats(bundle);
+                    const isNew = isScenarioNew(s.id);
+                    return (
+                      <div
+                        key={s.id}
+                        className="flex flex-col gap-3 rounded-2xl border border-zinc-100 bg-white p-4 shadow-sm transition hover:shadow-md"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => selectScenario(s.id)}
+                          className="flex flex-col gap-3 text-left"
+                        >
+                          <div className="flex items-start gap-3">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700">
+                              <i className={cn('fa-solid text-[14px]', s.icon)} />
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5">
+                                <h4 className="text-[14px] font-semibold text-zinc-900">{s.label}</h4>
+                                {isNew ? (
+                                  <span className="rounded-full px-1.5 py-0 text-[9px] font-semibold text-white" style={{ backgroundColor: '#c0512f' }}>
+                                    New
+                                  </span>
+                                ) : null}
+                              </div>
+                              <p className="line-clamp-2 text-[11px] leading-relaxed text-zinc-500">
+                                {s.desc}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-600">
+                              案例 {stats.cases}
+                            </span>
+                            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-600">
+                              培训 {stats.training}
+                            </span>
+                            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-600">
+                              洞察 {stats.insight}
+                            </span>
+                          </div>
+                          <div className="mt-auto rounded-lg bg-zinc-50 px-3 py-2">
+                            <p className="text-[10px] text-zinc-400">热门案例</p>
+                            <p className="line-clamp-1 text-[12px] font-medium text-zinc-700">
+                              {stats.hotCaseTitle}
+                            </p>
+                          </div>
+                        </button>
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => openScenarioNarrative(s.id)}
+                            className="flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-[11px] font-medium text-zinc-700 transition hover:bg-zinc-50"
+                          >
+                            查看详情
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => startScenarioTask(s.id)}
+                            className="flex-1 rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition hover:opacity-90"
+                            style={{ borderColor: '#c0512f', color: '#c0512f', backgroundColor: '#fff' }}
+                          >
+                            开启任务
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+
         <OrgAssetFilterBar
           deptFilter={deptFilter}
           regionFilter={regionFilter}
@@ -435,9 +635,10 @@ export function AiMapPage({
           onRegionChange={setRegionFilter}
           onEfficiencyChange={setEfficiencyFilter}
           onScenarioFilterChange={setListFilter}
+          triggerLabel="高级筛选"
         />
 
-        <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3 md:flex-row">
+        <div ref={detailRef} className="mt-3 flex min-h-0 flex-1 flex-col gap-3 md:flex-row">
           <aside className="flex w-full shrink-0 flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-white md:w-[260px]">
             <div className="border-b border-zinc-100 px-3 py-2">
               <p className="text-[11px] font-semibold text-zinc-700">业务场景</p>
@@ -624,7 +825,7 @@ export function AiMapPage({
                                 </span>
                                 {card.action.type === 'case' &&
                                 getPortalItemById(card.action.caseId)?.isGold ? (
-                                  <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[9px] font-semibold text-amber-800">
+                                  <span className="rounded-full px-1.5 py-0.5 text-[9px] font-semibold text-white" style={{ backgroundColor: '#c0512f' }}>
                                     金
                                   </span>
                                 ) : null}

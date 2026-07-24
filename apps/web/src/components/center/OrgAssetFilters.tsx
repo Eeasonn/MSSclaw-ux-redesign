@@ -29,6 +29,8 @@ interface OrgAssetFilterBarProps {
   showScope?: boolean;
   /** 默认折叠为摘要，点击展开双轴筛选 */
   collapsible?: boolean;
+  /** 折叠触发按钮前缀文案 */
+  triggerLabel?: string;
   extra?: ReactNode;
 }
 
@@ -46,6 +48,7 @@ export function OrgAssetFilterBar({
   onScenarioFilterChange,
   showScope = false,
   collapsible = true,
+  triggerLabel = '筛选',
   extra,
 }: OrgAssetFilterBarProps) {
   const [open, setOpen] = useState(!collapsible);
@@ -215,7 +218,7 @@ export function OrgAssetFilterBar({
       >
         <i className="fa-solid fa-sliders text-[10px] text-zinc-400" />
         <span className="truncate">
-          筛选 · <span className="text-zinc-500">{summary}</span>
+          {triggerLabel} · <span className="text-zinc-500">{summary}</span>
         </span>
         <i
           className={cn(

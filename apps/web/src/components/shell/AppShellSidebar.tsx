@@ -229,29 +229,16 @@ export function AppShellSidebar() {
             )}
 
             <div className="my-1 rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-1">
-              {isViewEnabled('select-scenario') && (
-                <button
-                  type="button"
-                  onClick={() => setAppView('select-scenario')}
-                  onMouseEnter={() => ROUTE_PREFETCH['select-scenario']?.()}
-                  className={cn('wb-nav-item', appView === 'select-scenario' && 'active')}
-                  title={sidebarCollapsed ? '选场景' : '选场景 · 按业务环节挑选'}
-                >
-                  <i className="fa-solid fa-map w-5 text-center text-[15px]" />
-                  <span className="nav-label">选场景</span>
-                </button>
-              )}
-
               {isViewEnabled('ai-map') && (
                 <button
                   type="button"
                   onClick={() => openResourceWithReturn('ai-map')}
                   onMouseEnter={() => ROUTE_PREFETCH['ai-map']?.()}
                   className={cn('wb-nav-item', appView === 'ai-map' && 'active')}
-                  title={sidebarCollapsed ? '案例' : '学案例 · 复制样板间'}
+                  title={sidebarCollapsed ? '场景案例' : '场景案例 · 复制样板间'}
                 >
-                  <i className="fa-solid fa-lightbulb w-5 text-center text-[15px]" />
-                  <span className="nav-label">学案例</span>
+                  <i className="fa-solid fa-map w-5 text-center text-[15px]" />
+                  <span className="nav-label">场景案例</span>
                 </button>
               )}
 
@@ -325,10 +312,10 @@ export function AppShellSidebar() {
                           onClick={() => openResourceWithReturn('ai-map')}
                           onMouseEnter={() => ROUTE_PREFETCH['ai-map']?.()}
                           className={cn('wb-nav-item', appView === 'ai-map' && 'active')}
-                          title={sidebarCollapsed ? '案例' : '学案例 · 复制样板间'}
+                          title={sidebarCollapsed ? '场景案例' : '场景案例 · 复制样板间'}
                         >
                           <i className="fa-solid fa-map w-5 text-center text-[15px]" />
-                          <span className="nav-label">学案例</span>
+                          <span className="nav-label">场景案例</span>
                         </button>
                       )}
                     </div>

@@ -36,7 +36,7 @@ const NAV_COMMANDS = (h: AppCommandHandlers): AppCommand[] => [
   },
   {
     id: 'goto-ai-map',
-    label: '学案例',
+    label: '场景案例',
     icon: 'fa-map',
     keywords: 'portal map 门户 场景 案例 样板 场景库',
     view: 'ai-map',

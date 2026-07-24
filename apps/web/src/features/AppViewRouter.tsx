@@ -22,7 +22,6 @@ import {
   LazySkillExpertPage,
   LazyAiAcademyPage,
   LazyAiAcademyAllPage,
-  LazyScenarioPickerPage,
   LazyVibeSpacePage,
   LazyTaskCenterPage,
   LazyNewTaskPage,
@@ -52,10 +51,9 @@ const VIEW_LABELS: Partial<Record<AppView, string>> = {
   task: '做任务',
   'new-task': '开启任务',
   messages: '我的消息',
-  'ai-map': '学案例',
+  'ai-map': '场景案例',
   'ai-campus': 'AI学院',
   'ai-campus-all': '全部课程',
-  'select-scenario': '选场景',
   'skills-experts': '找技能·专家',
   'vibe-space': 'Vibe空间',
   agents: '找专家',
@@ -173,12 +171,6 @@ export function AppViewRouter({ appView, handlers }: AppViewRouterProps) {
       return (
         <LazyView label={label}>
           <LazyAiAcademyAllPage />
-        </LazyView>
-      );
-    case 'select-scenario':
-      return (
-        <LazyView label={label}>
-          <LazyScenarioPickerPage />
         </LazyView>
       );
     case 'vibe-space':

@@ -2,7 +2,6 @@ export const APP_VIEWS = [
   'home',
   'ai-campus',
   'ai-campus-all',
-  'select-scenario',
   'skills-experts',
   'vibe-space',
   'ai-map',
@@ -48,10 +47,9 @@ export interface AppViewNavItem {
 export const APP_VIEW_NAV: AppViewNavItem[] = [
   { id: 'home', label: '逛广场', subtitle: '发现场景、工具与灵感', icon: 'fa-store', section: 'workspace' },
   { id: 'ai-campus', label: 'AI学院', subtitle: '系统学 AI，把能力装进工作流', icon: 'fa-graduation-cap', section: 'workspace' },
-  { id: 'select-scenario', label: '选场景', subtitle: '按业务环节挑选可复制场景', icon: 'fa-map', section: 'workspace' },
   { id: 'skills-experts', label: '找技能·专家', subtitle: '能力资产 · 人格化专家 · 专家团', icon: 'fa-toolbox', section: 'workspace' },
   { id: 'vibe-space', label: 'Vibe空间', subtitle: '看看大家用 AI 做出了什么', icon: 'fa-bolt', section: 'workspace' },
-  { id: 'ai-map', label: '学案例', subtitle: '样板间 · 可复制业务场景包', icon: 'fa-map', section: 'platform' },
+  { id: 'ai-map', label: '场景案例', subtitle: '样板间 · 可复制业务场景包', icon: 'fa-map', section: 'platform' },
 ];
 
 export const NAV_SECTION_LABELS: Record<NavSection, string> = {

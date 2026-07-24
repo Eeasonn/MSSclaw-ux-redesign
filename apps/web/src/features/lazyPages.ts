@@ -33,10 +33,6 @@ export const LazyAiAcademyAllPage = lazy(() =>
   import('@/features/academy/AiAcademyAllPage').then((m) => ({ default: m.AiAcademyAllPage })),
 );
 
-export const LazyScenarioPickerPage = lazy(() =>
-  import('@/features/scenario/ScenarioPickerPage').then((m) => ({ default: m.ScenarioPickerPage })),
-);
-
 export const LazyVibeSpacePage = lazy(() =>
   import('@/features/vibe/VibeSpacePage').then((m) => ({ default: m.VibeSpacePage })),
 );
@@ -116,7 +112,6 @@ export const ROUTE_PREFETCH: Partial<Record<AppView, () => void>> = {
   'skills-experts': () => void import('@/features/skill/SkillExpertPage'),
   'ai-campus': () => void import('@/features/academy/AiAcademyPage'),
   'ai-campus-all': () => void import('@/features/academy/AiAcademyAllPage'),
-  'select-scenario': () => void import('@/features/scenario/ScenarioPickerPage'),
   'vibe-space': () => void import('@/features/vibe/VibeSpacePage'),
   'ai-map': () => void import('@/features/ai-map/AiMapPage'),
   kb: () => void import('@/features/knowledge/KnowledgeCenterPage'),
