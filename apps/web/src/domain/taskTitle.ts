@@ -8,6 +8,29 @@ const ACTION_TRIM =
   /^(请|帮我|帮忙|麻烦)?(生成|撰写|起草|输出|分析|整理|汇总|总结|编写|完成|执行|创建|制作|给出|提供)/;
 
 /**
+ * 从一段普通描述中提炼核心意图（不含 @ / 调用前缀）。
+ */
+function extractCoreIntent(text: string, maxLen = TASK_TITLE_MAX_LEN): string {
+  let t = text.trim();
+  if (!t) return '';
+
+  // 取首句 / 首分句
+  t = t.split(/[。！？!?\n；;]/)[0]?.trim() ?? t;
+  const comma = t.search(/[，,]/);
+  if (comma > 6 && comma < maxLen + 4) {
+    t = t.slice(0, comma).trim();
+  }
+
+  t = t.replace(FILLER_PREFIX, '').trim();
+  // 保留动作语义：若去掉「生成/分析」后过短则保留动作词
+  const withoutAction = t.replace(ACTION_TRIM, '').trim();
+  if (withoutAction.length >= 4) t = withoutAction;
+
+  t = t.replace(/^[:：\-\s]+/, '').replace(/[“”"']/g, '').trim();
+  return t;
+}
+
+/**
  * 从用户输入/首条消息提炼短任务名（规则优先，即时可用）。
  */
 export function deriveTaskTitle(
@@ -33,7 +56,24 @@ export function deriveTaskTitle(
     return clampTitle(name ? `专家团：${name}` : '专家团任务', maxLen);
   }
 
-  // 去掉开头 @专家
+  // @专家调用：若文本主要是 @Agent，用 Agent 实名作为标题，并追加后续意图
+  if (opts?.agentName?.trim()) {
+    const agentName = opts.agentName.trim();
+    const shortName = agentName.replace(/\s*Agent\s*/i, '').trim();
+    const escapedName = agentName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escapedShort = shortName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const mentionRegex = new RegExp(`^@(?:${escapedName}|${escapedShort})\\b\\s*`);
+    if (mentionRegex.test(text)) {
+      const rest = text.replace(mentionRegex, '').trim();
+      const intent = extractCoreIntent(rest, maxLen);
+      if (!intent || intent.length < 2 || intent.replace(/\s*Agent\s*/gi, '').length < 2) {
+        return clampTitle(agentName, maxLen);
+      }
+      return clampTitle(`${agentName}：${intent}`, maxLen);
+    }
+  }
+
+  // 去掉开头 @专家（未识别到已绑定 Agent 时的兜底清理）
   text = text.replace(/^(?:@\S+\s*)+/, '').trim();
 
   // /技能指令：优先用技能名
@@ -45,19 +85,7 @@ export function deriveTaskTitle(
     else return clampTitle(skillMatch[1]!.replace(/^\/+/, ''), maxLen);
   }
 
-  // 取首句 / 首分句
-  text = text.split(/[。！？!?\n；;]/)[0]?.trim() ?? text;
-  const comma = text.search(/[，,]/);
-  if (comma > 6 && comma < maxLen + 4) {
-    text = text.slice(0, comma).trim();
-  }
-
-  text = text.replace(FILLER_PREFIX, '').trim();
-  // 保留动作语义：若去掉「生成/分析」后过短则保留动作词
-  const withoutAction = text.replace(ACTION_TRIM, '').trim();
-  if (withoutAction.length >= 4) text = withoutAction;
-
-  text = text.replace(/^[:：\-\s]+/, '').replace(/[“”"']/g, '').trim();
+  text = extractCoreIntent(text, maxLen);
 
   if (!text || text.length < 2) return fallbackTitle(opts?.agentName, opts?.skillName);
   return clampTitle(text, maxLen);
