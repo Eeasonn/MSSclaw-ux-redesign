@@ -615,7 +615,6 @@ export function AiMapPage({
   const pendingScenarioId = useNavigationIntentStore((s) => s.pendingScenarioId);
   const consumeScenarioId = useNavigationIntentStore((s) => s.consumeScenarioId);
   const bumpUse = useContentEngagementStore((s) => s.bumpUse);
-  const toggleLike = useContentEngagementStore((s) => s.toggleLike);
 
   const affiliation = useMemo(
     () => ({
