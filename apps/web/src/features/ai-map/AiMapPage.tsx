@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import type {
   PrototypeAgentSeed,
@@ -23,7 +23,8 @@ import {
   CenterSearchInput,
 } from '@/components/center/CenterShell';
 import { CaseEditorModal } from '@/components/center/CaseEditorModal';
-import { OrgAssetFilterBar } from '@/components/center/OrgAssetFilters';
+import { HQ_DEPTS, REGIONS } from '@/domain/orgTaxonomy';
+import { EFFICIENCY_FILTER_OPTIONS } from '@/domain/assetFilters';
 import { downloadScenarioCasePack } from '@/domain/caseExport';
 import { isSystemAdmin } from '@/domain/currentUser';
 import {
@@ -586,6 +587,193 @@ function ScenarioDetailPane({
   );
 }
 
+function FilterPopover({
+  deptFilter,
+  regionFilter,
+  efficiencyFilter,
+  scenarioFilter,
+  onDeptChange,
+  onRegionChange,
+  onEfficiencyChange,
+  onScenarioFilterChange,
+}: {
+  deptFilter: DeptFilter;
+  regionFilter: RegionFilter;
+  efficiencyFilter: EfficiencyFilter;
+  scenarioFilter: ScenarioListFilter;
+  onDeptChange: (v: DeptFilter) => void;
+  onRegionChange: (v: RegionFilter) => void;
+  onEfficiencyChange: (v: EfficiencyFilter) => void;
+  onScenarioFilterChange: (v: ScenarioListFilter) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onClickAway = (e: MouseEvent) => {
+      if (!ref.current) return;
+      if (!ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onClickAway);
+    return () => document.removeEventListener('mousedown', onClickAway);
+  }, [open]);
+
+  const summaryParts: string[] = [];
+  if (scenarioFilter !== 'all') summaryParts.push(scenarioFilter === 'related' ? '与我相关' : '全部场景');
+  if (deptFilter !== 'all') summaryParts.push(HQ_DEPTS.find((d) => d.id === deptFilter)?.label ?? deptFilter);
+  if (regionFilter !== 'all') summaryParts.push(REGIONS.find((r) => r.id === regionFilter)?.label ?? regionFilter);
+  if (efficiencyFilter !== 'all') summaryParts.push(EFFICIENCY_FILTER_OPTIONS.find((o) => o.id === efficiencyFilter)?.label ?? efficiencyFilter);
+  const summary = summaryParts.length ? summaryParts.join(' · ') : '全部';
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={cn(
+          'inline-flex max-w-full items-center gap-2 rounded-xl border bg-white px-3 py-2 text-[12px] font-medium transition',
+          open
+            ? 'border-zinc-900 bg-zinc-50 text-zinc-900'
+            : 'border-zinc-200 text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50',
+        )}
+      >
+        <i className="fa-solid fa-sliders text-[10px] text-zinc-400" />
+        <span className="truncate">
+          高级筛选 · <span className="text-zinc-500">{summary}</span>
+        </span>
+        <i className={cn('fa-solid text-[9px] text-zinc-400', open ? 'fa-chevron-up' : 'fa-chevron-down')} />
+      </button>
+      {open ? (
+        <div className="absolute right-0 top-full z-30 mt-2 w-[min(640px,calc(100vw-48px))] rounded-2xl border border-zinc-200 bg-white p-4 shadow-[0_18px_45px_rgba(24,24,27,0.14)]">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="m-0 text-[12px] font-semibold text-zinc-900">高级筛选</h3>
+            <button
+              type="button"
+              onClick={() => {
+                onScenarioFilterChange('all');
+                onDeptChange('all');
+                onRegionChange('all');
+                onEfficiencyChange('all');
+              }}
+              className="text-[11px] text-zinc-400 transition hover:text-zinc-700"
+            >
+              重置
+            </button>
+          </div>
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="mr-0.5 text-[10px] font-semibold text-zinc-400">场景范围</span>
+              <button
+                type="button"
+                onClick={() => onScenarioFilterChange('related')}
+                className={cn(
+                  'rounded-full border px-2.5 py-1 text-[11px] font-medium transition',
+                  scenarioFilter === 'related'
+                    ? 'border-zinc-900 bg-zinc-900 text-white'
+                    : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50',
+                )}
+              >
+                与我相关
+              </button>
+              <button
+                type="button"
+                onClick={() => onScenarioFilterChange('all')}
+                className={cn(
+                  'rounded-full border px-2.5 py-1 text-[11px] font-medium transition',
+                  scenarioFilter === 'all'
+                    ? 'border-zinc-900 bg-zinc-900 text-white'
+                    : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50',
+                )}
+              >
+                全部场景
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="mr-0.5 text-[10px] font-semibold text-zinc-400">职能</span>
+              <button
+                type="button"
+                onClick={() => onDeptChange('all')}
+                className={cn(
+                  'rounded-full border px-2.5 py-1 text-[11px] font-medium transition',
+                  deptFilter === 'all'
+                    ? 'border-zinc-900 bg-zinc-900 text-white'
+                    : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50',
+                )}
+              >
+                全部
+              </button>
+              {HQ_DEPTS.map((d) => (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => onDeptChange(d.id)}
+                  className={cn(
+                    'rounded-full border px-2.5 py-1 text-[11px] font-medium transition',
+                    deptFilter === d.id
+                      ? 'border-zinc-900 bg-zinc-900 text-white'
+                      : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50',
+                  )}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="mr-0.5 text-[10px] font-semibold text-zinc-400">区域</span>
+              <button
+                type="button"
+                onClick={() => onRegionChange('all')}
+                className={cn(
+                  'rounded-full border px-2.5 py-1 text-[11px] font-medium transition',
+                  regionFilter === 'all'
+                    ? 'border-zinc-900 bg-zinc-900 text-white'
+                    : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50',
+                )}
+              >
+                全部
+              </button>
+              {REGIONS.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => onRegionChange(r.id)}
+                  className={cn(
+                    'rounded-full border px-2.5 py-1 text-[11px] font-medium transition',
+                    regionFilter === r.id
+                      ? 'border-zinc-900 bg-zinc-900 text-white'
+                      : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50',
+                  )}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="mr-0.5 text-[10px] font-semibold text-zinc-400">提效场景</span>
+              {EFFICIENCY_FILTER_OPTIONS.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => onEfficiencyChange(o.id)}
+                  className={cn(
+                    'rounded-full border px-2.5 py-1 text-[11px] font-medium transition',
+                    efficiencyFilter === o.id
+                      ? 'border-zinc-900 bg-zinc-900 text-white'
+                      : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50',
+                  )}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function AiMapPage({
   onInvokeAgent,
   onInvokeSkill,
@@ -603,6 +791,7 @@ export function AiMapPage({
   const [listFilter, setListFilter] = useState<ScenarioListFilter>('related');
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [openModalId, setOpenModalId] = useState<string | null>(null);
   const [editorTarget, setEditorTarget] = useState<string | 'new' | null>(null);
   const [teamPlan, setTeamPlan] = useState<ScenarioDemoPlan | null>(null);
   const [activeCap, setActiveCap] = useState<ScenarioCapabilityId | 'all'>('all');
@@ -832,13 +1021,13 @@ export function AiMapPage({
             </div>
             <p className="mt-1.5 text-[14px] text-zinc-500">从 AI 广场发现，到场景详情确认，再一键进入任务执行</p>
           </div>
-          <div className="flex flex-wrap items-center justify-start gap-2 md:justify-end">
+          <div className="flex flex-nowrap items-center justify-start gap-2 overflow-x-auto md:justify-end">
             <CenterSearchInput
               value={search}
               onChange={setSearch}
               placeholder="搜索场景名称…"
             />
-            <OrgAssetFilterBar
+            <FilterPopover
               deptFilter={deptFilter}
               regionFilter={regionFilter}
               efficiencyFilter={efficiencyFilter}
@@ -847,8 +1036,6 @@ export function AiMapPage({
               onRegionChange={setRegionFilter}
               onEfficiencyChange={setEfficiencyFilter}
               onScenarioFilterChange={setListFilter}
-              triggerLabel="高级筛选"
-              collapsible
             />
             <button
               type="button"
@@ -857,7 +1044,7 @@ export function AiMapPage({
                 useNavigationIntentStore.getState().clearReturnTarget();
                 setAppView('home');
               }}
-              className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-[13px] font-medium text-zinc-700 transition hover:bg-zinc-50"
+              className="shrink-0 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-[12px] font-medium text-zinc-700 transition hover:bg-zinc-50"
             >
               返回 AI 广场
             </button>
@@ -865,7 +1052,7 @@ export function AiMapPage({
               <button
                 type="button"
                 onClick={() => setEditorTarget('new')}
-                className="rounded-xl bg-zinc-900 px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-zinc-800"
+                className="shrink-0 rounded-xl bg-zinc-900 px-3 py-2 text-[12px] font-semibold text-white transition hover:bg-zinc-800"
               >
                 <i className="fa-solid fa-plus mr-1" />
                 提交案例建议
@@ -983,7 +1170,7 @@ export function AiMapPage({
             {selected ? (
               <ScenarioDetailPane
                 bundle={selected}
-                onOpenModal={() => setSelectedId(selected.id)}
+                onOpenModal={() => setOpenModalId(selected.id)}
                 onStartTask={() => startScenarioTask(selected)}
                 onDownload={() => downloadScenarioPack(selected)}
                 onStartScenario={() => startScenario(selected)}
@@ -998,20 +1185,26 @@ export function AiMapPage({
         </div>
       </div>
 
-      {selected ? (
-        <ScenarioShowcaseModal
-          bundle={selected}
-          onClose={() => setSelectedId(null)}
-          onStart={() => startScenario(selected)}
-          onDownload={() => downloadScenarioPack(selected)}
-          onInvokeStep={(step, idx) => {
-            const plan = resolveScenarioDemoPlan(selected);
-            if (!plan) return;
-            invokePipelineStep(plan, step, idx);
-            setSelectedId(null);
-          }}
-          onOpenCard={handleCard}
-        />
+      {openModalId ? (
+        (() => {
+          const modalBundle = bundleById.get(openModalId) ?? null;
+          if (!modalBundle) return null;
+          return (
+            <ScenarioShowcaseModal
+              bundle={modalBundle}
+              onClose={() => setOpenModalId(null)}
+              onStart={() => startScenario(modalBundle)}
+              onDownload={() => downloadScenarioPack(modalBundle)}
+              onInvokeStep={(step, idx) => {
+                const plan = resolveScenarioDemoPlan(modalBundle);
+                if (!plan) return;
+                invokePipelineStep(plan, step, idx);
+                setOpenModalId(null);
+              }}
+              onOpenCard={handleCard}
+            />
+          );
+        })()
       ) : null}
 
       <ExpertTeamModal
