@@ -1021,7 +1021,7 @@ export function AiMapPage({
             </div>
             <p className="mt-1.5 text-[14px] text-zinc-500">从 AI 广场发现，到场景详情确认，再一键进入任务执行</p>
           </div>
-          <div className="flex flex-nowrap items-center justify-start gap-2 overflow-x-auto md:justify-end">
+          <div className="flex flex-wrap items-center justify-start gap-2 md:flex-nowrap md:justify-end">
             <CenterSearchInput
               value={search}
               onChange={setSearch}
@@ -1044,7 +1044,7 @@ export function AiMapPage({
                 useNavigationIntentStore.getState().clearReturnTarget();
                 setAppView('home');
               }}
-              className="shrink-0 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-[12px] font-medium text-zinc-700 transition hover:bg-zinc-50"
+              className="shrink-0 whitespace-nowrap rounded-xl border border-zinc-200 bg-white px-3 py-2 text-[12px] font-medium text-zinc-700 transition hover:bg-zinc-50"
             >
               返回 AI 广场
             </button>
@@ -1052,7 +1052,7 @@ export function AiMapPage({
               <button
                 type="button"
                 onClick={() => setEditorTarget('new')}
-                className="shrink-0 rounded-xl bg-zinc-900 px-3 py-2 text-[12px] font-semibold text-white transition hover:bg-zinc-800"
+                className="shrink-0 whitespace-nowrap rounded-xl bg-zinc-900 px-3 py-2 text-[12px] font-semibold text-white transition hover:bg-zinc-800"
               >
                 <i className="fa-solid fa-plus mr-1" />
                 提交案例建议
